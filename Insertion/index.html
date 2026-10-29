@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulación Insertion Sort</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+        canvas {
+            background-color: #1e1e1e;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <!-- Canvas donde se renderizará la animación -->
+    <canvas id="sortCanvas"></canvas>
+    
+    <!-- Botones de control -->
+    <div class="controls">
+        <button id="btnPause">Pausar / Reanudar</button>
+        <button id="btnStep">Siguiente Paso</button>
+        <button id="btnRestart">Reiniciar</button>
+    </div>
+
+    <!-- Script principal como módulo ES -->
+    <script type="module">
+        import { InsertionSortVisualizer } from './Insertion.js';
+
+        const canvas = document.getElementById('sortCanvas');
+        const visualizer = new InsertionSortVisualizer(canvas);
+
+        const datos = [64, 81, 51, 94, 49, 28, 34, 48, 98, 63];
+
+        // Inicializar y mostrar el estado inicial
+        visualizer.init(datos);
+        visualizer.step();
+
+        // Enlazar los botones de control
+        document.getElementById('btnPause').addEventListener('click', () => {
+            visualizer.pause();
+        });
+
+        document.getElementById('btnStep').addEventListener('click', () => {
+            visualizer.step();
+        });
+
+        document.getElementById('btnRestart').addEventListener('click', () => {
+            visualizer.init(datos);
+            visualizer.step();
+        });
+
+        // Iniciar la ejecución automática después de 1 segundo
+        setTimeout(() => {
+            visualizer.runAuto(800);
+        }, 1000);
+    </script>
+</body>
+</html>
