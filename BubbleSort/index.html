@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Algoritmo BubbleSort</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --fondo: #0d0a0c;
+      --superficie: #171114;
+      --superficie-elevada: #21171c;
+      --borde: #3b2831;
+      --texto: #f0e9ec;
+      --texto-suave: #b6a3ab;
+      --acento: #a64d68;
+      --acento-fondo: #2b1720;
+      --vino: #713044;
+      --vino-claro: #c06a83;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(ellipse at top, #24151c 0, var(--fondo) 55%); color: var(--texto); font-family: Arial, sans-serif; }
+    .pagina { max-width: 1400px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 16px; color: #f7eef1; font-size: 26px; letter-spacing: .2px; }
+    .controles-cantidad, .controles-pasos { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .controles-cantidad { margin-bottom: 16px; }
+    input, button { font: inherit; }
+    button { padding: 8px 12px; border: 1px solid var(--borde); border-radius: 6px; background: #271a20; color: var(--texto); cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+    button:hover:not(:disabled) { border-color: var(--vino-claro); background: #38212b; }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    input[type="range"] {
+      --progreso: 0%;
+      appearance: none;
+      -webkit-appearance: none;
+      height: 24px;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 7px;
+      border: 1px solid #55313e;
+      border-radius: 999px;
+      background: linear-gradient(to right, var(--vino-claro) 0 var(--progreso), #39242d var(--progreso) 100%);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 7px;
+      border: 1px solid #55313e;
+      border-radius: 999px;
+      background: #39242d;
+    }
+    input[type="range"]::-moz-range-progress {
+      height: 7px;
+      border-radius: 999px;
+      background: var(--vino-claro);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      width: 17px;
+      height: 17px;
+      margin-top: -6px;
+      border: 2px solid #f0d7df;
+      border-radius: 50%;
+      background: var(--vino);
+      box-shadow: 0 0 0 3px #a64d6833;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border: 2px solid #f0d7df;
+      border-radius: 50%;
+      background: var(--vino);
+      box-shadow: 0 0 0 3px #a64d6833;
+    }
+    :focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+    output { color: #e2bdc9; font-variant-numeric: tabular-nums; }
+    .cantidad-slider { width: 150px; height: 30px !important; }
+    .contenido { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
+    .columna-animacion, .panel { border: 1px solid var(--borde); border-radius: 10px; background: linear-gradient(145deg, #1d1519, var(--superficie)); padding: 16px; box-shadow: 0 12px 32px #00000055; }
+    .explicacion { min-height: 120px; margin-bottom: 14px; padding: 14px; border: 1px solid #55313e; border-left: 5px solid var(--acento); border-radius: 7px; background: linear-gradient(110deg, var(--acento-fondo), #1b1216); }
+    .explicacion h2 { margin: 0 0 8px; color: #f4dce4; font-size: 18px; }
+    .explicacion p { margin: 5px 0; line-height: 1.5; }
+    .pista { color: var(--texto-suave); font-size: 14px; }
+    canvas { display: block; width: 100%; height: auto; border: 1px solid #55313e; border-radius: 8px; background: #100c0e; }
+    .controles-pasos { margin-top: 14px; }
+    .controles-pasos input[type="range"] { width: 15%; min-width: 110px; }
+    #info { color: var(--texto-suave); font-size: 14px; font-variant-numeric: tabular-nums; }
+    .panel h2 { margin: 0 0 12px; font-size: 19px; }
+    .panel h3 { margin: 18px 0 8px; color: #e0c3cd; font-size: 15px; }
+    .codigo-python { overflow-x: auto; margin: 0; padding: 12px 8px; border: 1px solid #38252d; border-radius: 7px; background: #100c0e; color: #e8dfe3; }
+    .codigo-python code { font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+    .linea-python { display: block; min-width: max-content; padding: 3px 8px; border-left: 3px solid transparent; }
+    .linea-python.activa { border-left-color: #d789a1; border-radius: 3px; background: #38212b; color: #f0c4d1; }
+    .palabra-clave { color: #d3a6dc; }
+    .funcion-python { color: #e3a9bc; }
+    .numero-python { color: #e6b987; }
+    .registro { max-height: 280px; overflow-y: auto; margin: 0; padding-left: 25px; scrollbar-color: #70404f #171114; }
+    .registro li { padding: 5px 4px; color: #b6a3ab; font-size: 13px; line-height: 1.4; }
+    .registro li.actual { color: #efb9c9; font-weight: bold; }
+    .leyenda { margin: 10px 0 0; color: var(--texto-suave); font-size: 13px; }
+    @media (max-width: 850px) {
+      .contenido { grid-template-columns: 1fr; }
+      .registro { max-height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="pagina">
+    <h1>Aprende Bubble Sort paso a paso</h1>
+    <div class="controles-cantidad">
+      <label for="numInput">Cantidad de números (5 a 20):</label>
+      <input class="cantidad-slider" type="range" id="numInput" value="10" min="5" max="20" step="1"
+             aria-label="Seleccionar cantidad de números">
+      <output id="numValor" for="numInput">10</output>
+      <button id="btnGenerar">Generar nueva secuencia</button>
+    </div>
+
+    <div class="contenido">
+      <section class="columna-animacion" aria-label="Animación de Bubble Sort">
+        <div class="explicacion" aria-live="polite">
+          <h2 id="tituloPaso">Preparando la simulación</h2>
+          <p id="explicacionPaso"></p>
+          <p id="detallePaso" class="pista"></p>
+        </div>
+        <canvas id="canvas" width="800" height="200" aria-label="Arreglo de números que se está ordenando"></canvas>
+        <p class="leyenda">Los recuadros rojos son los números comparados; los verdes indican que el arreglo ya quedó ordenado.</p>
+        <div class="controles-pasos">
+          <button id="btnAnt">Anterior</button>
+          <button id="btnPlay">Reproducir</button>
+          <button id="btnSig">Siguiente</button>
+          <input type="range" id="barraPasos" min="0" max="0" value="0" step="1"
+                 aria-label="Seleccionar paso de la simulación">
+          <span id="info">Paso: 0 / 0</span>
+        </div>
+      </section>
+
+      <aside class="panel" aria-label="Algoritmo y secuencia">
+        <h2>¿Qué hace el algoritmo?</h2>
+        <p class="pista">Compara vecinos. Si el de la izquierda es mayor, los intercambia. Repite hasta ordenar todos.</p>
+        <h3>El código en Python</h3>
+        <pre class="codigo-python" aria-label="Código Python de Bubble Sort"><code><span id="codigo-1" class="linea-python"><span class="palabra-clave">def</span> <span class="funcion-python">bubble_sort</span>(lista):</span><span id="codigo-2" class="linea-python">    n = len(lista)</span><span id="codigo-3" class="linea-python">    <span class="palabra-clave">for</span> i <span class="palabra-clave">in</span> range(n - <span class="numero-python">1</span>):</span><span id="codigo-4" class="linea-python">        <span class="palabra-clave">for</span> j <span class="palabra-clave">in</span> range(n - i - <span class="numero-python">1</span>):</span><span id="codigo-5" class="linea-python">            <span class="palabra-clave">if</span> lista[j] &gt; lista[j + <span class="numero-python">1</span>]:</span><span id="codigo-6" class="linea-python">                lista[j], lista[j + <span class="numero-python">1</span>] = lista[j + <span class="numero-python">1</span>], lista[j]</span><span id="codigo-7" class="linea-python">    <span class="palabra-clave">return</span> lista</span></code></pre>
+        <h3>Recorrido realizado</h3>
+        <ol id="registro" class="registro" aria-live="polite"></ol>
+      </aside>
+    </div>
+  </main>
+
+  <script src="./dist/BubbleSort.js"></script>
+</body>
+</html>
