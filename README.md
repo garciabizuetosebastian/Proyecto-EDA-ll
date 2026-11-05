@@ -8,16 +8,16 @@ El proyecto esta conformado por la integracion de las animaciones relacionadas c
 ## Ordenamiento
 ### Tipos de algoritmos de ordenamiento
 ####  Por comparación simples
-* Insertion Sort
-* Bubble Sort
-* Selection Sort
+* [x] Insertion Sort
+* [x] Bubble Sort
+* [x] Selection Sort
 #### Por comparación eficiente
-* Merge Sort
-* Quick Sort
-* Heap Sort
+* [ ] Merge Sort
+* [x] Quick Sort
+* [ ] Heap Sort
 #### Ordenamiento lineal
-* Countig Sort
-* Radix Sort
+* [ ] Countig Sort
+* [x] Radix Sort
 
 
 ```mermaid
@@ -31,5 +31,5 @@ flowchart TD
 	B --> E
 	B--> F
 	E[Arteaga Pérez \nZabdiel Dirier] --> EE[Selection sort]
-	F[Hernández Morales \nHanzel Noel] --> FF[Quick sort]
+	F[Hernández Morales \nHanzel Noel] --> FF[Quick sort \n Radix Srot]
 ```
