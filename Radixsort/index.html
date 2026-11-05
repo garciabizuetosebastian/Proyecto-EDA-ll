@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Radix Sort – Visualizador</title>
+  <style>
+    :root {
+      --fondo: #100c0e;
+      --panel: #1a1317;
+      --borde: #593644;
+      --texto: #f0e2e7;
+      --texto-suave: #b89aa6;
+      --acento: #d77a98;
+      --acento-fondo: #762e48;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--fondo);
+      color: var(--texto);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    h1 { margin: 0 0 16px; font-size: 1.5rem; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: var(--acento);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background: var(--fondo);
+    }
+
+    /* Leyenda de colores */
+    .leyenda {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+    }
+    .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+    .leyenda i {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 2px solid;
+      display: inline-block;
+    }
+    .l-rango    { background: #33222a; border-color: #8a4a63; }
+    .l-comparar { background: #762e48; border-color: #d77a98; }
+    .l-exito    { background: #4a2636; border-color: #b65b79; }
+    .l-fuera    { background: #261a20; border-color: #593644; opacity: 0.4; }
+
+    .controles {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .controles label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--texto-suave);
+      font-size: 0.9rem;
+    }
+
+    button {
+      background: var(--acento-fondo);
+      color: #fff0f4;
+      border: 1px solid var(--acento);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { filter: brightness(1.15); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #info { margin-left: auto; color: var(--texto-suave); font-size: 0.9rem; }
+
+    /* Barras con progreso (usan la variable --progreso que actualiza el script) */
+    input[type="range"] {
+      --progreso: 0%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(
+        to right,
+        var(--acento) var(--progreso),
+        #3a2530 var(--progreso)
+      );
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--acento);
+      border: 2px solid var(--fondo);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--acento);
+      border: 2px solid var(--fondo);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #3a2530;
+    }
+    input[type="range"]::-moz-range-progress {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--acento);
+    }
+
+    #numInput { width: 140px; }
+    #barraPasos { width: 100%; margin-top: 14px; }
+
+    #tituloPaso { margin: 0 0 6px; font-size: 1.1rem; }
+    #explicacionPaso { margin: 0 0 8px; }
+    #detallePaso { margin: 0; color: var(--texto-suave); font-size: 0.92rem; }
+
+    /* Código con línea activa */
+    .codigo {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+    }
+    .codigo li {
+      padding: 3px 10px;
+      border-left: 3px solid transparent;
+      border-radius: 0 6px 6px 0;
+      color: var(--texto-suave);
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .codigo li.activa {
+      background: var(--acento-fondo);
+      border-left-color: var(--acento);
+      color: #fff0f4;
+    }
+    .codigo li.i1 { padding-left: 28px; }
+    .codigo li.i2 { padding-left: 46px; }
+
+    /* Registro de pasos */
+    #registro {
+      margin: 0;
+      padding: 0 0 0 22px;
+      max-height: 220px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      color: var(--texto-suave);
+    }
+    #registro li { padding: 3px 0; }
+    #registro li.actual { color: var(--texto); font-weight: 600; }
+
+    .full { grid-column: 1 / -1; }
+  
+    /* ---- Añadidos para este simulador ---- */
+    .l-pivote   { background: #5a4310; border-color: #e3b341; }
+    .l-menores  { background: #12363a; border-color: #4fb8b0; }
+    .l-mayores  { background: #2a2548; border-color: #8478d8; }
+    .l-digito   { background: #261a20; border-color: #e3b341; }
+    .l-ficha    { background: #4a2636; border-color: #b65b79; }
+    .codigo li.i3 { padding-left: 64px; }
+
+    #misNumeros {
+      width: 230px;
+      padding: 7px 10px;
+      background: var(--fondo);
+      color: var(--texto);
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      font: inherit;
+    }
+    #misNumeros::placeholder { color: #7a6470; }
+    #aviso { color: #e3b341; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>Radix Sort</h1>
+
+  <div class="layout">
+    <!-- Columna izquierda: animación y controles -->
+    <section class="panel">
+      <canvas id="canvas" width="900" height="440"></canvas>
+
+      <div class="leyenda">
+        <span><i class="l-comparar"></i> Número en proceso</span>
+        <span><i class="l-digito"></i> Dígito que analizamos</span>
+        <span><i class="l-rango"></i> Lista en la pasada actual</span>
+        <span><i class="l-ficha"></i> Número dentro de una cubeta</span>
+        <span><i class="l-fuera"></i> Ya repartido</span>
+        <span><i class="l-exito"></i> Lista ordenada</span>
+      </div>
+
+      <div class="controles">
+        <label>
+          Cantidad:
+          <input id="numInput" type="range" min="4" max="16" value="8" step="1">
+          <output id="numValor" for="numInput">8</output>
+        </label>
+        <button id="btnGenerar" type="button">Generar</button>
+        <button id="btnAnt" type="button">Anterior</button>
+        <button id="btnPlay" type="button">Reproducir</button>
+        <button id="btnSig" type="button">Siguiente</button>
+        <span id="info">Paso: 0 / 0</span>
+      </div>
+
+      <input id="barraPasos" type="range" min="0" max="0" value="0" step="1"
+             aria-label="Barra de pasos">
+
+      <div class="controles">
+        <label>
+          Tus números:
+          <input id="misNumeros" type="text" placeholder="ej: 170, 45, 75, 90, 802">
+        </label>
+        <button id="btnUsar" type="button">Usar mis números</button>
+        <span id="aviso"></span>
+      </div>
+    </section>
+
+    <!-- Columna derecha: explicación y código -->
+    <aside class="panel">
+      <h2>Qué está pasando</h2>
+      <h3 id="tituloPaso"></h3>
+      <p id="explicacionPaso"></p>
+      <p id="detallePaso"></p>
+
+      <h2 style="margin-top:18px">Código</h2>
+      <ol class="codigo">
+        <li id="codigo-1">función radixSort(arr):</li>
+        <li id="codigo-2" class="i1">para cada dígito (de derecha a izquierda):</li>
+        <li id="codigo-3" class="i2">crear 10 cubetas vacías (0 a 9)</li>
+        <li id="codigo-4" class="i2">para cada número de arr:</li>
+        <li id="codigo-5" class="i3">ponerlo en la cubeta de su dígito</li>
+        <li id="codigo-6" class="i2">recoger las cubetas 0..9 en arr</li>
+        <li id="codigo-7">devolver arr</li>
+      </ol>
+    </aside>
+
+    <!-- Registro de todos los pasos -->
+    <section class="panel full">
+      <h2>Registro de pasos</h2>
+      <ol id="registro"></ol>
+    </section>
+  </div>
+
+  <!-- El navegador no ejecuta .ts: se carga el .js generado al compilar -->
+  <script src="RadixSort.js"></script>
+</body>
+</html>
