@@ -12,11 +12,11 @@ El proyecto esta conformado por la integracion de las animaciones relacionadas c
 * [x] Bubble Sort
 * [x] Selection Sort
 #### Por comparación eficiente
-* [ ] Merge Sort
+* [x] Merge Sort
 * [x] Quick Sort
-* [ ] Heap Sort
+* [x] Heap Sort
 #### Ordenamiento lineal
-* [ ] Countig Sort
+* [x] Countig Sort
 * [x] Radix Sort
 
 
@@ -25,11 +25,11 @@ flowchart TD
 	A[Proyecto EDA_II]
 	B[Animaciones en Python]
 	A --> B -->C
-	C[Bernabe Castillo \nAzariel] --> CC[Bubble sort]
+	C[Bernabe Castillo \nAzariel] --> CC[Bubble sort\nSelection Sort]
 	B --> D 
-	D[García Bizueto \nSebastian]--> DD[Insertion sort]
+	D[García Bizueto \nSebastian]--> DD[Insertion sort\nMerge Sort]
 	B --> E
 	B--> F
-	E[Arteaga Pérez \nZabdiel Dirier] --> EE[Selection sort]
+	E[Arteaga Pérez \nZabdiel Dirier] --> EE[Heap Sort\nCountig Sort]
 	F[Hernández Morales \nHanzel Noel] --> FF[Quick sort \n Radix Srot]
 ```
