@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>Visualizador 2D - Ordenamiento Counting Sort</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; }
+      body { margin: 0; background: #ffffff; color: #111111; font-family: "Roboto", Arial, sans-serif; display: flex; align-items: center; justify-content: center; }
+      button, input { font: inherit; }
+      * { scrollbar-width: thin; scrollbar-color: #777777 #090909; }
+      *::-webkit-scrollbar { width: 8px; height: 8px; }
+      *::-webkit-scrollbar-track { background: #090909; }
+      *::-webkit-scrollbar-thumb { background: #777777; border-radius: 8px; }
+      .selection-layout { border: 0 !important; }
+      .selection-layout section, .selection-layout aside section { border-color: transparent !important; }
+      #app { min-height: 100vh; }
+      @media (max-width: 900px) {
+        .selection-layout { grid-template-columns: 1fr !important; }
+        .selection-side { grid-column: 1 !important; }
+        body { overflow: auto !important; align-items: flex-start !important; }
+        .selection-layout { width: calc(100vw - 24px) !important; height: auto !important; max-height: none !important; margin: 12px auto !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <script src="./counting_sort_animado.js?v=directo3"></script>
+    <script>iniciar();</script>
+  </body>
+</html>
