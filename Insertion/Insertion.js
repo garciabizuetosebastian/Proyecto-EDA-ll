@@ -1,143 +1,359 @@
-/**
- * Generador que ejecuta Insertion Sort y emite el estado actual
- * en cada comparación y movimiento.
- */
-export function* insertionSortGenerator(arr) {
-    const a = [...arr];
-    const n = a.length;
+"use strict";
+const LINEAS_CODIGO = 7;
+function obtenerElemento(id) {
+    const elemento = document.getElementById(id);
+    if (!elemento) {
+        throw new Error(`No se encontró el elemento con id "${id}".`);
+    }
+    return elemento;
+}
+function obtenerContexto(canvas) {
+    const contexto = canvas.getContext("2d");
+    if (!contexto) {
+        throw new Error("No se pudo obtener el contexto 2D del canvas.");
+    }
+    return contexto;
+}
+const canvas = obtenerElemento("canvas");
+const inputNum = obtenerElemento("numInput");
+const numValor = obtenerElemento("numValor");
+const infoLabel = obtenerElemento("info");
+const tituloPaso = obtenerElemento("tituloPaso");
+const explicacionPaso = obtenerElemento("explicacionPaso");
+const detallePaso = obtenerElemento("detallePaso");
+const registro = obtenerElemento("registro");
+const btnGenerar = obtenerElemento("btnGenerar");
+const btnAnt = obtenerElemento("btnAnt");
+const btnPlay = obtenerElemento("btnPlay");
+const btnSig = obtenerElemento("btnSig");
+const barraPasos = obtenerElemento("barraPasos");
+const ctx = obtenerContexto(canvas);
+const W = canvas.width;
+const H = canvas.height;
+function actualizarColorBarra(barra) {
+    const minimo = Number(barra.min);
+    const maximo = Number(barra.max);
+    const valor = Number(barra.value);
+    const porcentaje = maximo > minimo
+        ? ((valor - minimo) / (maximo - minimo)) * 100
+        : 0;
+    barra.style.setProperty("--progreso", `${porcentaje}%`);
+}
+const PALETA = {
+    fondo: "#100c0e",
+    normalFondo: "#261a20",
+    normalBorde: "#593644",
+    normalTexto: "#f0e2e7",
+    compararFondo: "#762e48",
+    compararBorde: "#d77a98",
+    compararTexto: "#fff0f4",
+    exitoFondo: "#4a2636",
+    exitoBorde: "#b65b79",
+    exitoTexto: "#ffe8ef",
+};
+let pasos = [];
+let pasoActual = 0;
+let playing = false;
+let timer = null;
+function calcularPasos(n) {
+    const arr = Array.from({ length: n }, () => Math.floor(Math.random() * 90) + 10);
+    const historial = [];
+    // El primer número ya cuenta como una lista ordenada de un solo elemento.
+    const ordenado = Array.from({ length: n }, (_, k) => k === 0);
+    const registrar = (p) => {
+        historial.push({
+            arr: [...arr],
+            rango: p.rango ?? null,
+            hueco: p.hueco ?? null,
+            clave: p.clave ?? null,
+            comp: p.comp ?? [],
+            ordenado: [...ordenado],
+            done: p.done ?? false,
+            titulo: p.titulo,
+            explicacion: p.explicacion,
+            detalle: p.detalle,
+            lineaCodigo: p.lineaCodigo,
+        });
+    };
+    registrar({
+        rango: [0, 0],
+        titulo: "Empezamos con una lista desordenada",
+        explicacion: `Tenemos ${n} números. Insertion Sort va formando una parte ordenada a la izquierda, insertando un número a la vez en su lugar correcto.`,
+        detalle: "El primer número ya cuenta como una lista ordenada de un solo elemento.",
+        lineaCodigo: 1,
+    });
     for (let i = 1; i < n; i++) {
-        const key = a[i];
+        const clave = arr[i];
+        const rango = [0, i];
         let j = i - 1;
-        // Estado cuando se selecciona la nueva clave (key)
-        yield {
-            array: [...a],
-            currentI: i,
-            currentJ: j,
-            key: key,
-            status: `Insertando el elemento ${key} (índice ${i})`
-        };
-        // Mover los elementos de a[0..i-1] que son mayores que key
-        while (j >= 0 && a[j] > key) {
-            a[j + 1] = a[j];
-            // Estado durante el desplazamiento de elementos
-            yield {
-                array: [...a],
-                currentI: i,
-                currentJ: j,
-                key: key,
-                status: `Desplazando ${a[j]} a la derecha`
-            };
+        // La posición i entra a la zona de trabajo: sus i elementos ordenados + la clave levantada.
+        ordenado[i] = true;
+        registrar({
+            rango,
+            hueco: i,
+            clave,
+            titulo: `Pasada ${i}: tomamos la clave`,
+            explicacion: `Tomamos ${clave} (posición ${i + 1}) y lo apartamos para buscarle su lugar en la parte ordenada.`,
+            detalle: `Parte ordenada: ${arr.slice(0, i).join(" · ")}.`,
+            lineaCodigo: 3,
+        });
+        while (j >= 0) {
+            const mayor = arr[j] > clave;
+            registrar({
+                rango,
+                hueco: j + 1,
+                clave,
+                comp: [j],
+                titulo: `Pasada ${i}: comparamos con la clave`,
+                explicacion: `Comparamos ${arr[j]} (posición ${j + 1}) con la clave ${clave}: ${arr[j]} ${mayor ? "es mayor" : "no es mayor"} que ${clave}.`,
+                detalle: mayor
+                    ? "Como es mayor, lo desplazamos una posición hacia la derecha."
+                    : "Como no es mayor, la clave ya encontró su lugar y dejamos de buscar.",
+                lineaCodigo: 4,
+            });
+            if (!mayor)
+                break;
+            const movido = arr[j];
+            arr[j + 1] = arr[j];
+            registrar({
+                rango,
+                hueco: j,
+                clave,
+                comp: [j + 1],
+                titulo: "Desplazamos a la derecha",
+                explicacion: `${movido} se mueve a la posición ${j + 2}. El hueco ahora está en la posición ${j + 1}.`,
+                detalle: "El hueco se va corriendo hacia la izquierda mientras encontremos números mayores que la clave.",
+                lineaCodigo: 5,
+            });
             j--;
         }
-        a[j + 1] = key;
-        // Estado tras colocar la clave en su posición final para esta iteración
-        yield {
-            array: [...a],
-            currentI: i,
-            currentJ: j + 1,
-            key: key,
-            status: `Colocado ${key} en el índice ${j + 1}`
-        };
+        arr[j + 1] = clave;
+        registrar({
+            rango,
+            comp: [j + 1],
+            titulo: "Insertamos la clave",
+            explicacion: `${clave} se coloca en la posición ${j + 2}.`,
+            detalle: `${j < 0 ? "Llegamos al inicio de la lista. " : ""}Parte ordenada: ${arr.slice(0, i + 1).join(" · ")}.`,
+            lineaCodigo: 6,
+        });
     }
-    // Estado final
-    yield {
-        array: [...a],
-        currentI: null,
-        currentJ: null,
-        key: null,
-        status: '¡Ordenamiento completado!'
-    };
-}
-/**
- * Renderiza el estado en un elemento HTML5 Canvas simulando las celdas cuadradas.
- */
-export function drawFrame(canvas, state) {
-    const ctx = canvas.getContext('2d');
-    if (!ctx)
-        return;
-    const arr = state.array;
-    const n = arr.length;
-    const boxSize = 50;
-    const gap = 10;
-    const startX = 20;
-    const startY = 60;
-    // Ajustar el tamaño del canvas automáticamente
-    canvas.width = Math.max(800, startX + n * (boxSize + gap) + 20);
-    canvas.height = 180;
-    // Fondo general oscuro (#1e1e1e)
-    ctx.fillStyle = '#1e1e1e';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Renderizado del título / estado
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText(state.status, startX, 35);
-    // Dibujar cada caja
-    arr.forEach((val, idx) => {
-        const x = startX + idx * (boxSize + gap);
-        const y = startY;
-        const isActive = idx === state.currentI || idx === state.currentJ;
-        const borderColor = isActive ? '#e74c3c' : '#555555';
-        const faceColor = isActive ? '#c0392b' : '#2a2a2a';
-        const lineWidth = isActive ? 3 : 1;
-        // Dibujar el fondo del recuadro
-        ctx.fillStyle = faceColor;
-        ctx.fillRect(x, y, boxSize, boxSize);
-        // Dibujar el borde del recuadro
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = lineWidth;
-        ctx.strokeRect(x, y, boxSize, boxSize);
-        // Dibujar el texto numérico (blanco centrado)
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 16px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(val.toString(), x + boxSize / 2, y + boxSize / 2);
+    for (let p = 0; p < n; p++)
+        ordenado[p] = true;
+    registrar({
+        done: true,
+        titulo: "¡Lista ordenada!",
+        explicacion: "Insertamos todos los números en su lugar. Los números quedaron de menor a mayor.",
+        detalle: `Resultado final: ${arr.join(" · ")}.`,
+        lineaCodigo: 7,
     });
+    return historial;
 }
-/**
- * Controlador para la simulación (Pausa, Paso a paso y Ejecución automática)
- */
-export class InsertionSortVisualizer {
-    sorter = null;
-    isPaused = false;
-    canvas;
-    constructor(canvas) {
-        this.canvas = canvas;
+function dibujarEstado(estado) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = PALETA.fondo;
+    ctx.fillRect(0, 0, W, H);
+    const n = estado.arr.length;
+    const margen = 5;
+    const anchoTotal = W - margen * (n + 1);
+    const boxW = Math.min(60, anchoTotal / n);
+    const boxH = 50;
+    // La clave "levantada" flota sobre la fila y las etiquetas van debajo;
+    // centramos todo como un bloque.
+    const elevacion = boxH + 14;
+    const etiquetas = 34;
+    const bloqueAlto = elevacion + boxH + etiquetas;
+    const claveY = Math.max(24, (H - bloqueAlto) / 2);
+    const mainY = claveY + elevacion;
+    const totalWidth = n * boxW + (n - 1) * margen;
+    const startX = (W - totalWidth) / 2;
+    const xDe = (k) => startX + k * (boxW + margen);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const fuente = () => {
+        if (boxW < 30)
+            return "bold 12px Arial";
+        if (boxW < 45)
+            return "bold 16px Arial";
+        return "bold 20px Arial";
+    };
+    const dibujarCaja = (x, y, valor, fondo, borde, texto, alpha) => {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = fondo;
+        ctx.fillRect(x, y, boxW, boxH);
+        ctx.strokeStyle = borde;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, boxW, boxH);
+        ctx.fillStyle = texto;
+        ctx.font = fuente();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(valor), x + boxW / 2, y + boxH / 2);
+        ctx.restore();
+    };
+    // Fila principal
+    for (let k = 0; k < n; k++) {
+        const x = xDe(k);
+        // Hueco: el espacio que dejó la clave al levantarse
+        if (estado.hueco === k) {
+            ctx.save();
+            ctx.setLineDash([5, 4]);
+            ctx.strokeStyle = PALETA.normalBorde;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, mainY, boxW, boxH);
+            ctx.restore();
+            continue;
+        }
+        const dentro = estado.rango !== null && k >= estado.rango[0] && k <= estado.rango[1];
+        let alpha = 1;
+        if (!estado.done && estado.rango !== null && !dentro)
+            alpha = 0.38;
+        let fondo = PALETA.normalFondo;
+        let borde = PALETA.normalBorde;
+        let texto = PALETA.normalTexto;
+        if (estado.done || estado.ordenado[k]) {
+            fondo = PALETA.exitoFondo;
+            borde = PALETA.exitoBorde;
+            texto = PALETA.exitoTexto;
+        }
+        if (!estado.done && estado.comp.includes(k)) {
+            fondo = PALETA.compararFondo;
+            borde = PALETA.compararBorde;
+            texto = PALETA.compararTexto;
+        }
+        dibujarCaja(x, mainY, estado.arr[k], fondo, borde, texto, alpha);
     }
-    init(data) {
-        this.sorter = insertionSortGenerator(data);
-        this.isPaused = false;
-    }
-    pause() {
-        this.isPaused = !this.isPaused;
-        console.log(`Estado de pausa: ${this.isPaused}`);
-    }
-    step() {
-        if (this.sorter) {
-            const result = this.sorter.next();
-            if (!result.done && result.value) {
-                drawFrame(this.canvas, result.value);
-            }
-            else {
-                console.log("El algoritmo ha finalizado.");
-            }
+    // Línea divisoria y etiquetas: parte ordenada | por ordenar
+    if (estado.rango !== null && !estado.done) {
+        const [lo, hi] = estado.rango;
+        const yEtiqueta = mainY + boxH + 20;
+        ctx.fillStyle = PALETA.compararBorde;
+        ctx.font = "bold 12px Arial";
+        ctx.fillText("parte ordenada", (xDe(lo) + xDe(hi) + boxW) / 2, yEtiqueta);
+        if (hi < n - 1) {
+            const xDiv = xDe(hi + 1) - margen / 2;
+            ctx.save();
+            ctx.setLineDash([5, 4]);
+            ctx.strokeStyle = PALETA.compararBorde;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(xDiv, mainY - 8);
+            ctx.lineTo(xDiv, mainY + boxH + 8);
+            ctx.stroke();
+            ctx.restore();
+            ctx.fillStyle = PALETA.compararBorde;
+            ctx.font = "bold 12px Arial";
+            ctx.fillText("por ordenar", (xDe(hi + 1) + xDe(n - 1) + boxW) / 2, yEtiqueta);
         }
     }
-    async runAuto(delayMs = 800) {
-        if (!this.sorter)
-            return;
-        let result = this.sorter.next();
-        while (!result.done) {
-            if (result.value) {
-                drawFrame(this.canvas, result.value);
-            }
-            // Espera simulada (delay)
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-            // Si se activa la pausa, detiene el bucle automático
-            while (this.isPaused) {
-                await new Promise((resolve) => setTimeout(resolve, 100));
-            }
-            result = this.sorter.next();
-        }
+    // Clave levantada, justo encima del hueco
+    if (estado.clave !== null && estado.hueco !== null) {
+        const x = xDe(estado.hueco);
+        dibujarCaja(x, claveY, estado.clave, PALETA.compararFondo, PALETA.compararBorde, PALETA.compararTexto, 1);
+        ctx.fillStyle = PALETA.compararBorde;
+        ctx.font = "bold 12px Arial";
+        ctx.fillText("clave", x + boxW / 2, claveY - 8);
     }
 }
+function actualizarVista() {
+    if (pasos.length === 0)
+        return;
+    dibujarEstado(pasos[pasoActual]);
+    barraPasos.value = String(pasoActual);
+    actualizarColorBarra(barraPasos);
+    infoLabel.textContent = `Paso: ${pasoActual + 1} / ${pasos.length}`;
+    const estado = pasos[pasoActual];
+    tituloPaso.textContent = estado.titulo;
+    explicacionPaso.textContent = estado.explicacion;
+    detallePaso.textContent = estado.detalle;
+    btnAnt.disabled = pasoActual === 0;
+    btnSig.disabled = pasoActual === pasos.length - 1;
+    for (let linea = 1; linea <= LINEAS_CODIGO; linea++) {
+        const elemento = obtenerElemento(`codigo-${linea}`);
+        elemento.classList.toggle("activa", estado.lineaCodigo === linea);
+    }
+    const elementosRegistro = pasos.slice(0, pasoActual + 1).map((paso, indice) => {
+        const elemento = document.createElement("li");
+        elemento.textContent = `${paso.titulo}: ${paso.explicacion}`;
+        if (indice === pasoActual) {
+            elemento.classList.add("actual");
+            elemento.setAttribute("aria-current", "step");
+        }
+        return elemento;
+    });
+    registro.replaceChildren(...elementosRegistro);
+    // El paso actual siempre es el último: bajamos solo el scroll del registro.
+    // (scrollIntoView movía también la página completa.)
+    registro.scrollTop = registro.scrollHeight;
+}
+function generar() {
+    detener();
+    const n = Number(inputNum.value);
+    numValor.value = String(n);
+    pasos = calcularPasos(n);
+    pasoActual = 0;
+    barraPasos.max = String(pasos.length - 1);
+    actualizarVista();
+}
+function siguiente() {
+    if (pasoActual < pasos.length - 1) {
+        pasoActual++;
+        actualizarVista();
+    }
+    else {
+        detener();
+    }
+}
+function anterior() {
+    if (pasoActual > 0) {
+        pasoActual--;
+        actualizarVista();
+    }
+}
+function play() {
+    if (playing)
+        return;
+    if (pasoActual === pasos.length - 1)
+        pasoActual = 0;
+    playing = true;
+    btnPlay.textContent = "Pausar";
+    timer = window.setInterval(() => {
+        siguiente();
+        if (pasoActual >= pasos.length - 1)
+            detener();
+    }, 300);
+}
+function detener() {
+    playing = false;
+    if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+    }
+    btnPlay.textContent = "Reproducir";
+}
+btnGenerar.onclick = generar;
+inputNum.oninput = () => {
+    numValor.value = inputNum.value;
+    actualizarColorBarra(inputNum);
+};
+btnAnt.onclick = () => {
+    detener();
+    anterior();
+};
+btnSig.onclick = () => {
+    detener();
+    siguiente();
+};
+barraPasos.oninput = () => {
+    detener();
+    pasoActual = Number(barraPasos.value);
+    actualizarVista();
+};
+btnPlay.onclick = () => {
+    if (playing)
+        detener();
+    else
+        play();
+};
+generar();
+actualizarColorBarra(inputNum);
