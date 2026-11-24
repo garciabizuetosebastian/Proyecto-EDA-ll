@@ -72,6 +72,7 @@ class Visualizador {
     private datos: number[];
     private pasos: Paso[];
     private timer?: number;
+    private animationFrame?: number;
     private host: HTMLElement;
     private canvas!: HTMLCanvasElement;
     private ctx!: CanvasRenderingContext2D;
@@ -231,11 +232,13 @@ class Visualizador {
         slider.style.background = `linear-gradient(to right, #d0d0d0 0%, #d0d0d0 ${avance}%, #5c5c5c ${avance}%, #5c5c5c 100%)`;
     }
     irA(paso: number): void {
+        const pasoAnterior = this.paso;
+        const anterior = Math.abs(paso - pasoAnterior) === 1 ? this.pasos[pasoAnterior - 1] : undefined;
         this.paso = Math.max(1, Math.min(this.pasos.length, paso));
         this.pasoSlider.value = String(this.paso);
         document.getElementById("paso-num")!.textContent = String(this.paso);
         this.actualizarRango(this.pasoSlider);
-        this.dibujar();
+        this.dibujar(anterior);
     }
     togglePlay(): void {
         this.reproduciendo ? this.detener() : this.reproducir();
@@ -250,7 +253,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-        }, 180);
+        }, 500);
     }
     detener(): void {
         if (this.timer !== undefined)
@@ -286,7 +289,8 @@ class Visualizador {
             return "Se mueve la raíz al final y se reduce el montón";
         return "Movimiento del montón";
     }
-    dibujar(): void {
+    dibujar(anterior?: Paso): void {
+        this.cancelarAnimacionVisual();
         const p = this.pasos[this.paso - 1];
         const estado = p.line === 7 ? "Secuencia ordenada" :
             p.line === 6 ? `Se mueve la raíz y el elemento ${p.arr[p.minimo ?? 0]} queda definido` :
@@ -311,6 +315,32 @@ class Visualizador {
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
+        if (anterior)
+            this.animarIntercambio(anterior, p);
+    }
+    cancelarAnimacionVisual(): void {
+        if (this.animationFrame !== undefined)
+            window.cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = undefined;
+    }
+    animarIntercambio(anterior: Paso, actual: Paso): void {
+        const cambios = actual.arr.flatMap((valor, indice) => valor === anterior.arr[indice] ? [] : [indice]);
+        if (cambios.length !== 2 ||
+            anterior.arr[cambios[0]] !== actual.arr[cambios[1]] ||
+            anterior.arr[cambios[1]] !== actual.arr[cambios[0]])
+            return;
+
+        const inicio = performance.now();
+        const dibujarFrame = (ahora: number): void => {
+            const avance = Math.min(1, (ahora - inicio) / 420);
+            const suave = avance * avance * (3 - 2 * avance);
+            this.dibujar2D(actual, anterior, suave);
+            if (avance < 1)
+                this.animationFrame = window.requestAnimationFrame(dibujarFrame);
+            else
+                this.animationFrame = undefined;
+        };
+        this.animationFrame = window.requestAnimationFrame(dibujarFrame);
     }
     dibujarInstrucciones(): void {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -328,7 +358,7 @@ class Visualizador {
         });
         this.instructionsPanel.innerHTML = instrucciones.join("");
     }
-    dibujar2D(p: Paso): void {
+    dibujar2D(p: Paso, anterior?: Paso, avance = 1): void {
         const ctx = this.ctx;
         const rect = this.canvas.getBoundingClientRect();
         const width = Math.max(1, Math.floor(rect.width));
@@ -352,8 +382,11 @@ class Visualizador {
         ctx.textAlign = "left";
         ctx.fillText("Arreglo", 12, 15);
         p.arr.forEach((value, i) => {
-            const x = arrayX + i * (cardWidth + gap);
-            const y = 24;
+            const origen = anterior?.arr.indexOf(value) ?? i;
+            const destinoX = arrayX + i * (cardWidth + gap);
+            const origenX = arrayX + origen * (cardWidth + gap);
+            const x = origenX + (destinoX - origenX) * avance;
+            const y = 24 - (origen === i ? 0 : Math.sin(avance * Math.PI) * 18);
             ctx.fillStyle = colors[i];
             ctx.strokeStyle = "#111";
             ctx.lineWidth = 2;
@@ -373,10 +406,10 @@ class Visualizador {
 
         const tamanoMonton = Math.max(0, p.tamano === undefined ? cantidad - p.ordenadas : p.tamano);
         const posiciones = new Map<number, { x: number; y: number }>();
-        const niveles = Math.ceil(Math.log2(tamanoMonton + 1));
+        const niveles = Math.ceil(Math.log2(cantidad + 1));
         let siguiente = 0;
-        for (let nivel = 0; nivel < niveles && siguiente < tamanoMonton; nivel++) {
-            const cantidadNivel = Math.min(2 ** nivel, tamanoMonton - siguiente);
+        for (let nivel = 0; nivel < niveles && siguiente < cantidad; nivel++) {
+            const cantidadNivel = Math.min(2 ** nivel, cantidad - siguiente);
             const separacion = Math.min(74, (width - 36) / Math.max(1, cantidadNivel));
             const xCentral = width / 2;
             const anchoNivel = (cantidadNivel - 1) * separacion;
@@ -392,7 +425,9 @@ class Visualizador {
         ctx.strokeStyle = "#555555";
         ctx.lineWidth = 2;
         posiciones.forEach((posicion, i) => {
+            if (i >= tamanoMonton) return;
             [2 * i + 1, 2 * i + 2].forEach(hijo => {
+                if (hijo >= tamanoMonton) return;
                 const destino = posiciones.get(hijo);
                 if (!destino) return;
                 ctx.beginPath();
@@ -403,15 +438,21 @@ class Visualizador {
         });
 
         posiciones.forEach((posicion, i) => {
-            ctx.fillStyle = this.colores(p)[i];
+            const value = p.arr[i];
+            const origen = anterior?.arr.indexOf(value) ?? i;
+            const origenPosicion = posiciones.get(origen) ?? posicion;
+            const x = origenPosicion.x + (posicion.x - origenPosicion.x) * avance;
+            const y = origenPosicion.y + (posicion.y - origenPosicion.y) * avance -
+                (origen === i ? 0 : Math.sin(avance * Math.PI) * 12);
+            ctx.fillStyle = colors[i];
             ctx.beginPath();
-            ctx.roundRect(posicion.x - 17, posicion.y - 16, 34, 32, 7);
+            ctx.roundRect(x - 17, y - 16, 34, 32, 7);
             ctx.fill();
             ctx.fillStyle = "#fff";
             ctx.font = "700 14px Roboto, Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(String(p.arr[i]), posicion.x, posicion.y);
+            ctx.fillText(String(value), x, y);
             ctx.fillStyle = "#8f8f8f";
             ctx.font = "9px Arial";
             ctx.fillText(String(i), posicion.x, posicion.y + 27);

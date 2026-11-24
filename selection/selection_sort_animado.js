@@ -47,6 +47,7 @@ class Visualizador {
         this.random = this.crearRandom(semilla);
         this.datos = this.nuevosDatos(this.cantidad);
         this.pasos = generarPasos(this.datos);
+        this.animationFrame = undefined;
         this.host = this.crearInterfaz();
     }
     crearInterfaz() {
@@ -183,11 +184,13 @@ class Visualizador {
         slider.style.background = `linear-gradient(to right,#d0d0d0 0%,#d0d0d0 ${avance}%,#5c5c5c ${avance}%,#5c5c5c 100%)`;
     }
     irA(paso) {
+        const pasoAnterior = this.paso;
+        const anterior = Math.abs(paso - pasoAnterior) === 1 ? this.pasos[pasoAnterior - 1] : undefined;
         this.paso = Math.max(1, Math.min(this.pasos.length, paso));
         this.pasoSlider.value = String(this.paso);
         document.getElementById("paso-num").textContent = String(this.paso);
         this.actualizarRango(this.pasoSlider);
-        this.dibujar();
+        this.dibujar(anterior);
     }
     togglePlay() {
         this.reproduciendo ? this.detener() : this.reproducir();
@@ -202,7 +205,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-        }, 180);
+        }, 500);
     }
     detener() {
         if (this.timer !== undefined)
@@ -225,7 +228,8 @@ class Visualizador {
             return color;
         });
     }
-    dibujar() {
+    dibujar(anterior) {
+        this.cancelarAnimacionVisual();
         const p = this.pasos[this.paso - 1];
         const estado = p.line === 7 ? "Secuencia ordenada" :
             p.line === 6 ? `Se coloca ${p.arr[p.inicio]} en su posicion definitiva` :
@@ -244,6 +248,8 @@ class Visualizador {
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
+        if (anterior)
+            this.animarIntercambio(anterior, p);
     }
     dibujarInstrucciones() {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -263,7 +269,31 @@ class Visualizador {
         this.instructionsPanel.innerHTML = instrucciones.slice(inicio).join("");
         this.instructionsPanel.scrollTop = this.instructionsPanel.scrollHeight;
     }
-    dibujar2D(p) {
+    cancelarAnimacionVisual() {
+        if (this.animationFrame !== undefined)
+            window.cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = undefined;
+    }
+    animarIntercambio(anterior, actual) {
+        const cambios = actual.arr.flatMap((valor, indice) => valor === anterior.arr[indice] ? [] : [indice]);
+        if (cambios.length !== 2 ||
+            anterior.arr[cambios[0]] !== actual.arr[cambios[1]] ||
+            anterior.arr[cambios[1]] !== actual.arr[cambios[0]])
+            return;
+
+        const inicio = performance.now();
+        const dibujarFrame = ahora => {
+            const avance = Math.min(1, (ahora - inicio) / 420);
+            const suave = avance * avance * (3 - 2 * avance);
+            this.dibujar2D(actual, anterior, suave);
+            if (avance < 1)
+                this.animationFrame = window.requestAnimationFrame(dibujarFrame);
+            else
+                this.animationFrame = undefined;
+        };
+        this.animationFrame = window.requestAnimationFrame(dibujarFrame);
+    }
+    dibujar2D(p, anterior, avance = 1) {
         const ctx = this.ctx;
         const rect = this.canvas.getBoundingClientRect();
         const width = Math.max(1, Math.floor(rect.width));
@@ -283,8 +313,11 @@ class Visualizador {
         const startX = (width - totalWidth) / 2;
         const startY = (height - cardHeight) / 2 - 18;
         p.arr.forEach((value, i) => {
-            const x = startX + i * (cardWidth + gap);
-            const y = startY;
+            const origen = anterior ? anterior.arr.indexOf(value) : i;
+            const destinoX = startX + i * (cardWidth + gap);
+            const origenX = startX + origen * (cardWidth + gap);
+            const x = origenX + (destinoX - origenX) * avance;
+            const y = startY - (origen === i ? 0 : Math.sin(avance * Math.PI) * 28);
             ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
             ctx.shadowBlur = 8;
             ctx.shadowOffsetY = 3;
@@ -303,7 +336,7 @@ class Visualizador {
             ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
             ctx.fillStyle = "#bbaeb3";
             ctx.font = "12px Arial";
-            ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 22);
+            ctx.fillText(String(i), destinoX + cardWidth / 2, y + cardHeight + 22);
         });
     }
     dibujarCodigo(lineaActiva) {
