@@ -32,7 +32,6 @@ function generarPasos(datos) {
         conteo[numero - minimo]++;
         foto(4, indice, numero, numero - minimo, 0);
     });
-    foto(5, undefined, undefined, undefined, 0);
     foto(9, undefined, undefined, undefined, a.length);
     return pasos;
 }
@@ -125,7 +124,6 @@ class Visualizador {
         host.querySelector("#siguiente").onclick = () => this.irA(this.paso + 1);
         host.querySelector("#aplicar-arreglo").onclick = () => this.aplicarArreglo();
         host.querySelector("#buscar-numero").oninput = () => {
-            this.actualizarResultado();
             this.dibujar();
         };
         this.playButton.onclick = () => this.togglePlay();
@@ -147,7 +145,6 @@ class Visualizador {
         this.actualizarSliderPasos();
         this.actualizarRango(this.cantidadSlider);
         this.dibujar();
-        this.actualizarResultado();
         return this.host;
     }
     crearRandom(semilla) {
@@ -177,20 +174,21 @@ class Visualizador {
         this.paso = 1;
         this.actualizarSliderPasos();
         this.dibujar();
-        this.actualizarResultado();
         document.getElementById("cantidad-valor").textContent = String(this.cantidad);
         document.querySelector("#cantidad-slider").value = String(Math.max(5, this.cantidad));
     }
     actualizarResultado() {
         const objetivo = Number(document.querySelector("#buscar-numero").value);
-        const minimo = Math.min(...this.datos);
-        const maximo = Math.max(...this.datos);
-        const conteos = Array(maximo - minimo + 1).fill(0);
-        this.datos.forEach(numero => conteos[numero - minimo]++);
-        const indice = objetivo - minimo;
-        const veces = indice >= 0 && indice < conteos.length ? conteos[indice] : 0;
-        document.querySelector("#resultado-busqueda").textContent =
-            `El número ${objetivo} aparece ${veces} ${veces === 1 ? "vez" : "veces"}`;
+        const posiciones = this.pasos
+            .slice(0, this.paso)
+            .filter(p => p.line === 4 && p.minimo === objetivo && p.inicio !== undefined)
+            .map(p => p.inicio);
+        const terminado = this.pasos[this.paso - 1].line === 9;
+        const listaPosiciones = posiciones.length > 0 ? posiciones.join(", ") : "ninguna";
+        const resumen = document.querySelector("#resultado-busqueda");
+        resumen.textContent = terminado
+            ? `El número ${objetivo} aparece ${posiciones.length} ${posiciones.length === 1 ? "vez" : "veces"}${posiciones.length > 0 ? ` en las posiciones ${listaPosiciones}` : ""}.`
+            : `Buscando el número ${objetivo}. Posiciones encontradas hasta ahora: ${listaPosiciones}.`;
     }
     regenerar(n) {
         this.detener();
@@ -202,7 +200,6 @@ class Visualizador {
         document.querySelector("#arreglo-personalizado").value = this.datos.join(", ");
         this.actualizarSliderPasos();
         this.dibujar();
-        this.actualizarResultado();
     }
     iniciarAnimacion() {
         this.regenerar(this.cantidad);
@@ -253,7 +250,7 @@ class Visualizador {
         const objetivo = Number(document.querySelector("#buscar-numero")?.value);
         return p.arr.map((_, i) => {
             let color = ROJO;
-            if (i < p.inicio && p.arr[i] === objetivo)
+            if (p.inicio !== undefined && i < p.inicio && p.arr[i] === objetivo)
                 color = VERDE;
             if (p.arr[i] === objetivo && p.line === 9)
                 color = VERDE;
@@ -264,7 +261,7 @@ class Visualizador {
     }
     dibujar() {
         const p = this.pasos[this.paso - 1];
-        const estado = p.line === 9 ? "Busqueda terminada; la secuencia mantiene su orden original" :
+        const estado = p.line === 9 ? "Búsqueda terminada; el arreglo mantiene su orden original" :
             p.line === 4 ? `Leyendo la posición ${p.inicio}: número ${p.minimo}` :
             p.line === 3 ? "Se crea el arreglo auxiliar de conteos" :
             p.line === 2 ? `Máximo encontrado: ${p.inicio}` :
@@ -279,6 +276,7 @@ class Visualizador {
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
+        this.actualizarResultado();
     }
     dibujarInstrucciones() {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -287,10 +285,9 @@ class Visualizador {
                 case 1: texto = "Se identifica el número mínimo."; break;
                 case 2: texto = "Se identifica el número máximo."; break;
                 case 3: texto = "Se crea el arreglo auxiliar de conteos."; break;
-                case 4: texto = "Se registra una repetición en el arreglo de conteo."; break;
-                case 5: texto = "Se inicia la reconstrucción ordenada del arreglo."; break;
-                case 8: texto = `Se coloca el número ${paso.minimo} en la posición ${paso.inicio}.`; break;
-                default: texto = "La secuencia ya quedó ordenada.";
+                case 4: texto = `Se registra una repetición en la posición ${paso.inicio}.`; break;
+                case 9: texto = "Se terminó de recorrer el arreglo."; break;
+                default: texto = "Se recorre el arreglo.";
             }
             return `<div style="border-bottom:1px solid #ffffff10;padding:6px 0"><span style="color:#ff91a2">${indice + 1}.</span> ${texto}</div>`;
         });
@@ -336,8 +333,8 @@ class Visualizador {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
-            ctx.fillStyle = "#bbaeb3";
             ctx.font = "12px Arial";
+            ctx.fillStyle = "#bbaeb3";
             ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 22);
         });
     }

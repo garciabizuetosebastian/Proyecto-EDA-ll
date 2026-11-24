@@ -77,6 +77,7 @@ class Visualizador {
   private paso = 1;
   private reproduciendo = false;
   private timer?: number;
+  private animationFrame?: number;
 
   private readonly host: HTMLElement;
   private readonly title: HTMLElement;
@@ -233,10 +234,12 @@ class Visualizador {
   }
 
   private irA(paso: number): void {
+    const pasoAnterior = this.paso;
+    const anterior = Math.abs(paso - pasoAnterior) === 1 ? this.pasos[pasoAnterior - 1] : undefined;
     this.paso = Math.max(1, Math.min(this.pasos.length, paso));
     this.pasoSlider.value = String(this.paso);
     document.getElementById("paso-valor")!.textContent = String(this.paso);
-    this.dibujar();
+    this.dibujar(anterior);
   }
 
   private togglePlay(): void {
@@ -250,7 +253,7 @@ class Visualizador {
     this.timer = window.setInterval(() => {
       if (this.paso >= this.pasos.length) this.detener();
       else this.irA(this.paso + 1);
-    }, 180);
+    }, 500);
   }
 
   private detener(): void {
@@ -271,14 +274,39 @@ class Visualizador {
     });
   }
 
-  private dibujar(): void {
+  private dibujar(anterior?: Step): void {
+    this.cancelarAnimacionVisual();
     const p = this.pasos[this.paso - 1];
     this.title.textContent = `Paso ${this.paso}/${this.pasos.length} - Ordenamiento por Selección`;
     this.dibujar2D(p);
     this.dibujarCodigo(p.line);
+    if (anterior)
+      this.animarIntercambio(anterior, p);
   }
 
-  private dibujar2D(p: Step): void {
+  private cancelarAnimacionVisual(): void {
+    if (this.animationFrame !== undefined) window.cancelAnimationFrame(this.animationFrame);
+    this.animationFrame = undefined;
+  }
+
+  private animarIntercambio(anterior: Step, actual: Step): void {
+    const cambios = actual.arr.flatMap((valor, indice) => valor === anterior.arr[indice] ? [] : [indice]);
+    if (cambios.length !== 2 ||
+      anterior.arr[cambios[0]] !== actual.arr[cambios[1]] ||
+      anterior.arr[cambios[1]] !== actual.arr[cambios[0]]) return;
+
+    const inicio = performance.now();
+    const dibujarFrame = (ahora: number): void => {
+      const avance = Math.min(1, (ahora - inicio) / 420);
+      const suave = avance * avance * (3 - 2 * avance);
+      this.dibujar2D(actual, anterior, suave);
+      if (avance < 1) this.animationFrame = window.requestAnimationFrame(dibujarFrame);
+      else this.animationFrame = undefined;
+    };
+    this.animationFrame = window.requestAnimationFrame(dibujarFrame);
+  }
+
+  private dibujar2D(p: Step, anterior?: Step, avance = 1): void {
     const ctx = this.ctx;
     const width = this.canvas.width;
     const height = this.canvas.height;
@@ -323,7 +351,12 @@ class Visualizador {
     const startX = chartLeft + (availableWidth - totalWidth) / 2;
 
     p.arr.forEach((value, i) => {
-      const x = startX + i * (barWidth + gap);
+      const origen = anterior?.arr.indexOf(value) ?? i;
+      const destinoX = startX + i * (barWidth + gap);
+      const origenX = startX + origen * (barWidth + gap);
+      const centerX = origenX + barWidth / 2 + (destinoX - origenX) * avance;
+      const base = baseY - (origen === i ? 0 : Math.sin(avance * Math.PI) * 62);
+      const x = centerX - barWidth / 2;
       const barHeight = value * scale;
 
       ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
@@ -333,7 +366,7 @@ class Visualizador {
       ctx.strokeStyle = "#111";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x, baseY - barHeight, barWidth, barHeight, [8, 8, 0, 0]);
+      ctx.roundRect(x, base - barHeight, barWidth, barHeight, [8, 8, 0, 0]);
       ctx.fill();
       ctx.stroke();
       ctx.shadowColor = "transparent";
@@ -341,11 +374,11 @@ class Visualizador {
       ctx.fillStyle = "white";
       ctx.font = "14px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(String(value), x + barWidth / 2, baseY - barHeight - 22);
+      ctx.fillText(String(value), centerX, base - barHeight - 22);
 
       ctx.fillStyle = "#aaaaaa";
       ctx.font = "12px Arial";
-      ctx.fillText(String(i), x + barWidth / 2, baseY + 25);
+      ctx.fillText(String(i), destinoX + barWidth / 2, baseY + 25);
     });
   }
 
