@@ -38,7 +38,7 @@ function actualizarColorBarra(barra) {
         : 0;
     barra.style.setProperty("--progreso", `${porcentaje}%`);
 }
-const PALETA = {
+let PALETA = {
     fondo: "#100c0e",
     normalFondo: "#261a20",
     normalBorde: "#593644",
@@ -50,6 +50,16 @@ const PALETA = {
     exitoBorde: "#b65b79",
     exitoTexto: "#ffe8ef",
 };
+function aplicarTemaDeSortLab() {
+    if (window.SortLabTheme)
+        Object.assign(PALETA, window.SortLabTheme.getPalette());
+}
+aplicarTemaDeSortLab();
+window.addEventListener("sortlab-theme-change", () => {
+    aplicarTemaDeSortLab();
+    if (typeof actualizarVista === "function")
+        actualizarVista();
+});
 let pasos = [];
 let pasoActual = 0;
 let playing = false;
@@ -144,6 +154,10 @@ function dibujarEstado(estado) {
     ctx.textBaseline = "middle";
     for (let k = 0; k < n; k++) {
         const x = startX + k * (boxW + margen);
+        let elevacion = 0;
+        const seleccionado = estado.comp && (k === estado.comp[0] || k === estado.comp[1]);
+        if (seleccionado)
+            elevacion = estado.titulo.includes("Intercambiamos") ? 24 : 14;
         let bgColor = PALETA.normalFondo;
         let borderColor = PALETA.normalBorde;
         let textColor = PALETA.normalTexto;
@@ -152,16 +166,24 @@ function dibujarEstado(estado) {
             borderColor = PALETA.exitoBorde;
             textColor = PALETA.exitoTexto;
         }
-        else if (estado.comp && (k === estado.comp[0] || k === estado.comp[1])) {
+        else if (seleccionado) {
             bgColor = PALETA.compararFondo;
             borderColor = PALETA.compararBorde;
             textColor = PALETA.compararTexto;
         }
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
         ctx.fillStyle = bgColor;
-        ctx.fillRect(x, startY, boxW, boxH);
+        ctx.beginPath();
+        ctx.roundRect(x, startY - elevacion, boxW, boxH, 9);
+        ctx.fill();
+        ctx.shadowColor = "transparent";
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = 2;
-        ctx.strokeRect(x, startY, boxW, boxH);
+        ctx.stroke();
+        ctx.restore();
         ctx.fillStyle = textColor;
         if (boxW < 30)
             ctx.font = "bold 12px Arial";
@@ -169,17 +191,33 @@ function dibujarEstado(estado) {
             ctx.font = "bold 16px Arial";
         else
             ctx.font = "bold 20px Arial";
-        ctx.fillText(String(estado.arr[k]), x + boxW / 2, startY + boxH / 2);
+        ctx.fillText(String(estado.arr[k]), x + boxW / 2, startY - elevacion + boxH / 2);
     }
 }
 function actualizarVista() {
     if (pasos.length === 0)
         return;
-    dibujarEstado(pasos[pasoActual]);
+    const estado = pasos[pasoActual];
+    dibujarEstado(estado);
+    if (pasoActual > 0 && estado.titulo.includes("Intercambiamos") && window.SortLabTheme) {
+        const anterior = pasos[pasoActual - 1];
+        const [i, j] = estado.comp;
+        if (anterior.arr[i] !== estado.arr[i] && anterior.arr[j] !== estado.arr[j]) {
+            const n = estado.arr.length;
+            const margen = 5;
+            const boxW = Math.min(60, (W - margen * (n + 1)) / n);
+            const x0 = (W - (n * boxW + (n - 1) * margen)) / 2 + boxW / 2;
+            const centroY = (H - 50) / 2 + 25 - 24;
+            const tamaño = boxW < 30 ? 12 : boxW < 45 ? 16 : 20;
+            window.SortLabTheme.animarIntercambio(canvas, [
+                { x1: x0 + i * (boxW + margen), y1: centroY, x2: x0 + j * (boxW + margen), y2: centroY, valor: anterior.arr[i], width: boxW, height: 50, fontSize: tamaño, scale: 0.65 },
+                { x1: x0 + j * (boxW + margen), y1: centroY, x2: x0 + i * (boxW + margen), y2: centroY, valor: anterior.arr[j], width: boxW, height: 50, fontSize: tamaño, scale: 0.65 }
+            ]);
+        }
+    }
     barraPasos.value = String(pasoActual);
     actualizarColorBarra(barraPasos);
     infoLabel.textContent = `Paso: ${pasoActual + 1} / ${pasos.length}`;
-    const estado = pasos[pasoActual];
     tituloPaso.textContent = estado.titulo;
     explicacionPaso.textContent = estado.explicacion;
     detallePaso.textContent = estado.detalle;
@@ -199,8 +237,6 @@ function actualizarVista() {
         return elemento;
     });
     registro.replaceChildren(...elementosRegistro);
-    const pasoVisible = registro.querySelector(".actual");
-    pasoVisible?.scrollIntoView({ block: "nearest" });
 }
 function generar() {
     detener();
@@ -237,7 +273,7 @@ function play() {
         siguiente();
         if (pasoActual >= pasos.length - 1)
             detener();
-    }, 300);
+    }, Math.round(1500 / window.SortLabTheme.getPlaybackSpeed()));
 }
 function detener() {
     playing = false;
@@ -271,5 +307,12 @@ btnPlay.onclick = () => {
     else
         play();
 };
+window.SortLabTheme.crearControlVelocidad(btnPlay.parentElement);
+window.addEventListener("sortlab-speed-change", () => {
+    if (playing) {
+        detener();
+        play();
+    }
+});
 generar();
 actualizarColorBarra(inputNum);

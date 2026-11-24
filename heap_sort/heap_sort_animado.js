@@ -1,10 +1,25 @@
-const BG = "#ffffff";
-const PANEL = "#151515";
-const AZUL = "#4da3ff";
-const ROJO = "#ff3158";
-const AMARILLO = "#ffd166";
-const NARANJA = "#ff8f42";
-const VERDE = "#63d6a5";
+const TEMA_INICIAL = window.SortLabTheme?.getPalette();
+let BG = TEMA_INICIAL?.fondo || "#050505";
+let PANEL = TEMA_INICIAL?.normalFondo || "#151515";
+let AZUL = TEMA_INICIAL?.compararBorde || "#d6d6d6";
+let ROJO = TEMA_INICIAL?.normalBorde || "#383838";
+let AMARILLO = TEMA_INICIAL?.minimoBorde || "#e0bc72";
+let NARANJA = TEMA_INICIAL?.pivoteBorde || "#e0bc72";
+let VERDE = TEMA_INICIAL?.exitoBorde || "#64c9a7";
+
+window.addEventListener("sortlab-theme-change", () => {
+    if (!window.SortLabTheme) return;
+    const tema = window.SortLabTheme.getPalette();
+    BG = tema.fondo;
+    PANEL = tema.normalFondo;
+    AZUL = tema.compararBorde;
+    ROJO = tema.normalBorde;
+    AMARILLO = tema.minimoBorde;
+    NARANJA = tema.pivoteBorde;
+    VERDE = tema.exitoBorde;
+    if (window.__sortLabVisualizer)
+        window.__sortLabVisualizer.dibujar();
+});
 const CODE = [
     "def heap_sort(lista):",
     "    n = len(lista)",
@@ -62,6 +77,13 @@ class Visualizador {
         this.pasos = generarPasos(this.datos);
         this.host = this.crearInterfaz();
         this.animationFrame = undefined;
+        window.SortLabTheme.crearControlVelocidad(this.host.querySelector("#play").parentElement);
+        window.addEventListener("sortlab-speed-change", () => {
+            if (this.timer !== undefined) {
+                this.detener();
+                this.reproducir();
+            }
+        });
     }
     crearInterfaz() {
         const host = document.createElement("main");
@@ -223,7 +245,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-        }, 500);
+        }, Math.round(1500 / window.SortLabTheme.getPlaybackSpeed()));
     }
     detener() {
         if (this.timer !== undefined)
@@ -301,14 +323,20 @@ class Visualizador {
             return;
 
         const inicio = performance.now();
+        let avanceAnterior = 0;
         const dibujarFrame = ahora => {
-            const avance = Math.min(1, (ahora - inicio) / 420);
+            const avance = Math.max(
+                avanceAnterior,
+                Math.min(1, (ahora - inicio) / (1100 / window.SortLabTheme.getPlaybackSpeed()))
+            );
+            avanceAnterior = avance;
             const suave = avance * avance * (3 - 2 * avance);
             this.dibujar2D(actual, anterior, suave);
             if (avance < 1)
                 this.animationFrame = window.requestAnimationFrame(dibujarFrame);
-            else
+            else {
                 this.animationFrame = undefined;
+            }
         };
         this.animationFrame = window.requestAnimationFrame(dibujarFrame);
     }
@@ -338,6 +366,8 @@ class Visualizador {
         this.canvas.style.height = `${height}px`;
         ctx.fillStyle = PANEL;
         ctx.fillRect(0, 0, width, height);
+        ctx.save();
+        ctx.translate(0, 34);
         const colors = this.colores(p);
         const cantidad = p.arr.length;
         const cardSize = cantidad <= 10 ? 34 : 29;
@@ -346,6 +376,7 @@ class Visualizador {
         const gap = cantidad === 15 ? 3 : 4;
         const arrayWidth = cardWidth * cantidad + gap * (cantidad - 1);
         const arrayX = Math.max(20, (width - arrayWidth) / 2);
+        const garritas = [];
 
         ctx.fillStyle = "#ffffff";
         ctx.font = "700 11px Roboto, Arial";
@@ -356,7 +387,8 @@ class Visualizador {
             const destinoX = arrayX + i * (cardWidth + gap);
             const origenX = arrayX + origen * (cardWidth + gap);
             const x = origenX + (destinoX - origenX) * avance;
-            const y = 24 - (origen === i ? 0 : Math.sin(avance * Math.PI) * 18);
+            const seleccionado = i === p.inicio || i === p.minimo || (Array.isArray(p.comp) && p.comp.includes(i));
+            const y = 24 - (origen === i ? (seleccionado ? 14 : 0) : Math.sin(avance * Math.PI) * 18);
             ctx.fillStyle = colors[i];
             ctx.strokeStyle = "#111";
             ctx.lineWidth = 2;
@@ -369,10 +401,20 @@ class Visualizador {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
+            if (anterior && (p.line === 5 || p.line === 6)
+                && (i === p.inicio || i === p.minimo)) {
+                garritas.push({
+                    x: x + cardWidth / 2,
+                    y: y - cardHeight / 2 - 39 * 0.55 - 6,
+                    scale: 0.55
+                });
+            }
             ctx.fillStyle = "#8f8f8f";
             ctx.font = "10px Arial";
             ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 11);
         });
+        if (window.SortLabTheme)
+            window.SortLabTheme.dibujarGarritas(this.canvas, garritas);
 
         const tamanoMonton = Math.max(0, p.tamano === undefined ? cantidad - p.ordenadas : p.tamano);
         const posiciones = new Map();
@@ -427,6 +469,7 @@ class Visualizador {
             ctx.font = "9px Arial";
             ctx.fillText(String(i), posicion.x, posicion.y + 27);
         });
+        ctx.restore();
     }
     dibujarCodigo(lineaActiva) {
         this.codePanel.replaceChildren();
@@ -462,5 +505,6 @@ class Visualizador {
     }
 }
 function iniciar(cantidad = 15, semilla) {
-    return new Visualizador(cantidad, semilla).montar();
+    window.__sortLabVisualizer = new Visualizador(cantidad, semilla);
+    return window.__sortLabVisualizer.montar();
 }

@@ -39,7 +39,7 @@ function actualizarColorBarra(barra) {
         : 0;
     barra.style.setProperty("--progreso", `${porcentaje}%`);
 }
-const PALETA = {
+let PALETA = {
     fondo: "#100c0e",
     normalFondo: "#261a20",
     normalBorde: "#593644",
@@ -54,6 +54,16 @@ const PALETA = {
     exitoBorde: "#b65b79",
     exitoTexto: "#ffe8ef",
 };
+function aplicarTemaDeSortLab() {
+    if (window.SortLabTheme)
+        Object.assign(PALETA, window.SortLabTheme.getPalette());
+}
+aplicarTemaDeSortLab();
+window.addEventListener("sortlab-theme-change", () => {
+    aplicarTemaDeSortLab();
+    if (typeof actualizarVista === "function")
+        actualizarVista();
+});
 let pasos = [];
 let pasoActual = 0;
 let playing = false;
@@ -288,7 +298,8 @@ function dibujarEstado(estado) {
         }
         if (estado.usados[k])
             alpha = 0.3;
-        dibujarCaja(xDe(k), mainY, estado.arr[k], fondo, borde, texto, alpha);
+        const elevacion = !estado.done && estado.comp.includes(k) ? 16 : 0;
+        dibujarCaja(xDe(k), mainY - elevacion, estado.arr[k], fondo, borde, texto, alpha);
     }
     // Línea divisoria y etiquetas de las dos mitades
     if (estado.rango !== null && estado.medio !== null) {
@@ -340,11 +351,75 @@ function dibujarEstado(estado) {
 function actualizarVista() {
     if (pasos.length === 0)
         return;
-    dibujarEstado(pasos[pasoActual]);
+    const estado = pasos[pasoActual];
+    dibujarEstado(estado);
+    if (pasoActual > 0 && window.SortLabTheme
+        && (estado.titulo.startsWith("Colocamos") || estado.titulo.startsWith("Copiamos"))) {
+        const anterior = pasos[pasoActual - 1];
+        const n = estado.arr.length;
+        const margen = 5;
+        const boxW = Math.min(60, (W - margen * (n + 1)) / n);
+        const boxH = 50;
+        const separacion = 80;
+        const mainY = Math.max(34, (H - (boxH * 2 + separacion)) / 2);
+        const auxY = mainY + boxH + separacion;
+        const startX = (W - (n * boxW + (n - 1) * margen)) / 2;
+        const centroX = (indice) => startX + indice * (boxW + margen) + boxW / 2;
+        const centroPrincipal = (indice) =>
+            mainY + boxH / 2 - (estado.comp.includes(indice) ? 16 : 0);
+        const tamaño = boxW < 30 ? 12 : boxW < 45 ? 16 : 20;
+        const movimientos = [];
+
+        if (estado.titulo.startsWith("Colocamos")) {
+            const origen = estado.comp[0];
+            const destino = estado.resaltarAux[0];
+            movimientos.push({
+                x1: centroX(origen),
+                y1: centroPrincipal(origen),
+                limpiarY1: centroPrincipal(origen),
+                x2: centroX(destino),
+                y2: auxY + boxH / 2,
+                limpiarY2: auxY + boxH / 2,
+                valor: estado.aux[destino]
+            });
+        } else if (estado.titulo === "Copiamos los que sobran") {
+            estado.comp.forEach((origen, indice) => {
+                const destino = estado.resaltarAux[indice];
+                movimientos.push({
+                    x1: centroX(origen),
+                    y1: centroPrincipal(origen),
+                    limpiarY1: centroPrincipal(origen),
+                    x2: centroX(destino),
+                    y2: auxY + boxH / 2,
+                    limpiarY2: auxY + boxH / 2,
+                    valor: estado.aux[destino]
+                });
+            });
+        } else {
+            estado.resaltarAux.forEach((indice) => {
+                movimientos.push({
+                    x1: centroX(indice),
+                    y1: auxY + boxH / 2,
+                    limpiarY1: auxY + boxH / 2,
+                    x2: centroX(indice),
+                    y2: centroPrincipal(indice),
+                    limpiarY2: centroPrincipal(indice),
+                    valor: estado.arr[indice]
+                });
+            });
+        }
+
+        window.SortLabTheme.animarIntercambio(canvas, movimientos.map((movimiento) => ({
+            ...movimiento,
+            width: boxW,
+            height: boxH,
+            fontSize: tamaño,
+            scale: 0.65
+        })));
+    }
     barraPasos.value = String(pasoActual);
     actualizarColorBarra(barraPasos);
     infoLabel.textContent = `Paso: ${pasoActual + 1} / ${pasos.length}`;
-    const estado = pasos[pasoActual];
     tituloPaso.textContent = estado.titulo;
     explicacionPaso.textContent = estado.explicacion;
     detallePaso.textContent = estado.detalle;
@@ -364,8 +439,7 @@ function actualizarVista() {
         return elemento;
     });
     registro.replaceChildren(...elementosRegistro);
-    // El paso actual siempre es el último: bajamos solo el scroll del registro.
-    // (scrollIntoView movía también la página completa.)
+    // Mantiene el avance dentro del registro, sin mover la página.
     registro.scrollTop = registro.scrollHeight;
 }
 function generar() {
@@ -403,7 +477,7 @@ function play() {
         siguiente();
         if (pasoActual >= pasos.length - 1)
             detener();
-    }, 300);
+    }, Math.round(1500 / window.SortLabTheme.getPlaybackSpeed()));
 }
 function detener() {
     playing = false;
@@ -437,5 +511,12 @@ btnPlay.onclick = () => {
     else
         play();
 };
+window.SortLabTheme.crearControlVelocidad(btnPlay.parentElement);
+window.addEventListener("sortlab-speed-change", () => {
+    if (playing) {
+        detener();
+        play();
+    }
+});
 generar();
 actualizarColorBarra(inputNum);

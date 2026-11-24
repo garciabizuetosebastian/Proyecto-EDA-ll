@@ -39,7 +39,7 @@ function actualizarColorBarra(barra) {
         : 0;
     barra.style.setProperty("--progreso", `${porcentaje}%`);
 }
-const PALETA = {
+let PALETA = {
     fondo: "#100c0e",
     normalFondo: "#261a20",
     normalBorde: "#593644",
@@ -51,6 +51,16 @@ const PALETA = {
     exitoBorde: "#b65b79",
     exitoTexto: "#ffe8ef",
 };
+function aplicarTemaDeSortLab() {
+    if (window.SortLabTheme)
+        Object.assign(PALETA, window.SortLabTheme.getPalette());
+}
+aplicarTemaDeSortLab();
+window.addEventListener("sortlab-theme-change", () => {
+    aplicarTemaDeSortLab();
+    if (typeof actualizarVista === "function")
+        actualizarVista();
+});
 let pasos = [];
 let pasoActual = 0;
 let playing = false;
@@ -221,7 +231,8 @@ function dibujarEstado(estado) {
             borde = PALETA.compararBorde;
             texto = PALETA.compararTexto;
         }
-        dibujarCaja(x, mainY, estado.arr[k], fondo, borde, texto, alpha);
+        const elevacion = !estado.done && estado.comp.includes(k) ? 16 : 0;
+        dibujarCaja(x, mainY - elevacion, estado.arr[k], fondo, borde, texto, alpha);
     }
     // Línea divisoria y etiquetas: parte ordenada | por ordenar
     if (estado.rango !== null && !estado.done) {
@@ -258,11 +269,61 @@ function dibujarEstado(estado) {
 function actualizarVista() {
     if (pasos.length === 0)
         return;
-    dibujarEstado(pasos[pasoActual]);
+    const estado = pasos[pasoActual];
+    dibujarEstado(estado);
+    if (pasoActual > 0 && window.SortLabTheme
+        && (estado.titulo.includes("Desplazamos") || estado.titulo.includes("Insertamos"))) {
+        const anterior = pasos[pasoActual - 1];
+        const n = estado.arr.length;
+        const margen = 5;
+        const boxW = Math.min(60, (W - margen * (n + 1)) / n);
+        const boxH = 50;
+        const claveY = Math.max(24, (H - (boxH + 14 + boxH + 34)) / 2);
+        const mainY = claveY + boxH + 14;
+        const startX = (W - (n * boxW + (n - 1) * margen)) / 2;
+        const centroX = (indice) => startX + indice * (boxW + margen) + boxW / 2;
+        const centroFila = (indice) => mainY + boxH / 2 - (estado.comp.includes(indice) ? 16 : 0);
+        const tamaño = boxW < 30 ? 12 : boxW < 45 ? 16 : 20;
+        let movimiento;
+
+        if (estado.titulo.includes("Desplazamos")) {
+            const destino = estado.comp[0];
+            const origen = estado.hueco;
+            movimiento = {
+                x1: centroX(origen),
+                y1: mainY + boxH / 2 - (anterior.comp.includes(origen) ? 16 : 0),
+                limpiarY1: mainY + boxH / 2,
+                x2: centroX(destino),
+                y2: centroFila(destino),
+                limpiarY2: centroFila(destino),
+                valor: estado.arr[destino]
+            };
+        } else if (anterior.clave !== null && anterior.hueco !== null) {
+            const destino = estado.comp[0];
+            movimiento = {
+                x1: centroX(anterior.hueco),
+                y1: claveY + boxH / 2,
+                limpiarY1: claveY + boxH / 2,
+                x2: centroX(destino),
+                y2: centroFila(destino),
+                limpiarY2: centroFila(destino),
+                valor: anterior.clave
+            };
+        }
+
+        if (movimiento) {
+            window.SortLabTheme.animarIntercambio(canvas, [{
+                ...movimiento,
+                width: boxW,
+                height: boxH,
+                fontSize: tamaño,
+                scale: 0.65
+            }]);
+        }
+    }
     barraPasos.value = String(pasoActual);
     actualizarColorBarra(barraPasos);
     infoLabel.textContent = `Paso: ${pasoActual + 1} / ${pasos.length}`;
-    const estado = pasos[pasoActual];
     tituloPaso.textContent = estado.titulo;
     explicacionPaso.textContent = estado.explicacion;
     detallePaso.textContent = estado.detalle;
@@ -282,8 +343,7 @@ function actualizarVista() {
         return elemento;
     });
     registro.replaceChildren(...elementosRegistro);
-    // El paso actual siempre es el último: bajamos solo el scroll del registro.
-    // (scrollIntoView movía también la página completa.)
+    // Mantiene el avance dentro del registro, sin mover la página.
     registro.scrollTop = registro.scrollHeight;
 }
 function generar() {
@@ -321,7 +381,7 @@ function play() {
         siguiente();
         if (pasoActual >= pasos.length - 1)
             detener();
-    }, 300);
+    }, Math.round(1500 / window.SortLabTheme.getPlaybackSpeed()));
 }
 function detener() {
     playing = false;
@@ -355,5 +415,12 @@ btnPlay.onclick = () => {
     else
         play();
 };
+window.SortLabTheme.crearControlVelocidad(btnPlay.parentElement);
+window.addEventListener("sortlab-speed-change", () => {
+    if (playing) {
+        detener();
+        play();
+    }
+});
 generar();
 actualizarColorBarra(inputNum);
