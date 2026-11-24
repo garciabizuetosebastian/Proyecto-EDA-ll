@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050505">
+  <title>SortLab — Laboratorio de algoritmos</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --fondo: #050505;
+      --superficie: #0d0d0d;
+      --superficie-alta: #171717;
+      --borde: #2b2b2b;
+      --texto: #f4f4f4;
+      --suave: #a3a3a3;
+      --acento: #d6d6d6;
+      --acento-rgb: 214, 214, 214;
+      --acento-suave: #242424;
+      --sombra: 0 24px 70px #000000cc;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 75% -15%, rgba(var(--acento-rgb), .14), transparent 42%),
+        var(--fondo);
+      color: var(--texto);
+    }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+
+    .app { min-height: 100vh; }
+    .sidebar {
+      position: fixed;
+      z-index: 5;
+      inset: 0 auto 0 0;
+      display: flex;
+      width: 264px;
+      flex-direction: column;
+      padding: 27px 18px 20px;
+      overflow-y: auto;
+      border-right: 1px solid var(--borde);
+      background: var(--fondo);
+      backdrop-filter: blur(20px);
+    }
+    .sidebar { scrollbar-color: #3a4052 transparent; scrollbar-width: thin; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 10px;
+      text-decoration: none;
+      color: var(--texto);
+    }
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid rgba(var(--acento-rgb), .34);
+      border-radius: 12px;
+      background: var(--acento-suave);
+      color: var(--acento);
+      font-size: 19px;
+      font-weight: 800;
+      box-shadow: 0 0 28px rgba(var(--acento-rgb), .12);
+    }
+    .brand-name { font-size: 17px; font-weight: 750; letter-spacing: -.5px; }
+    .brand-caption { margin-top: 2px; color: var(--suave); font-size: 11px; }
+    .nav-label {
+      margin: 37px 10px 11px;
+      color: #777e92;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .nav-list { display: grid; gap: 5px; }
+    .nav-item {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 11px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: #a7adbd;
+      cursor: pointer;
+      text-align: left;
+      transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .nav-item:hover { transform: translateX(2px); background: #ffffff08; color: var(--texto); }
+    .nav-item[aria-current="page"] {
+      border-color: rgba(var(--acento-rgb), .2);
+      background: linear-gradient(100deg, rgba(var(--acento-rgb), .16), rgba(var(--acento-rgb), .04));
+      color: var(--texto);
+    }
+    .nav-icon {
+      display: grid;
+      width: 31px;
+      height: 31px;
+      flex: 0 0 31px;
+      place-items: center;
+      border: 1px solid #ffffff0d;
+      border-radius: 9px;
+      background: #ffffff07;
+      color: #b7bdd0;
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .nav-item[aria-current="page"] .nav-icon {
+      border-color: rgba(var(--acento-rgb), .26);
+      background: rgba(var(--acento-rgb), .15);
+      color: var(--acento);
+    }
+    .nav-copy { min-width: 0; }
+    .nav-name { display: block; font-size: 13px; font-weight: 650; }
+    .nav-kind { display: block; margin-top: 3px; color: #7e8497; font-size: 10px; }
+    .sidebar-bottom {
+      margin-top: auto;
+      padding: 15px 11px 0;
+      border-top: 1px solid var(--borde);
+      color: var(--suave);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .sidebar-bottom strong { color: #c6cada; font-weight: 600; }
+
+    .main { min-height: 100vh; margin-left: 264px; padding: 0 38px 40px; }
+    .topbar {
+      display: flex;
+      height: 76px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--borde);
+    }
+    .breadcrumb { color: var(--suave); font-size: 12px; }
+    .breadcrumb strong { color: #d7d9e5; font-weight: 550; }
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .theme-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      background: var(--superficie);
+    }
+    .theme-control label { color: #c4c8d6; font-size: 11px; }
+    .theme-select {
+      max-width: 120px;
+      padding: 4px 20px 4px 7px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--superficie-alta);
+      color: var(--texto);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .menu-toggle {
+      display: none;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--borde);
+      border-radius: 9px;
+      background: var(--superficie);
+      cursor: pointer;
+    }
+    .intro { padding: 35px 0 23px; }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--acento);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { width: 18px; height: 1px; background: var(--acento); content: ""; }
+    h1 { margin: 12px 0 9px; font-size: clamp(26px, 3.2vw, 39px); letter-spacing: -1.5px; line-height: 1.1; }
+    .intro p { max-width: 610px; margin: 0; color: var(--suave); font-size: 13px; line-height: 1.7; }
+    .workspace {
+      overflow: hidden;
+      border: 1px solid var(--borde);
+      border-radius: 15px;
+      background: var(--superficie);
+      box-shadow: var(--sombra);
+    }
+    .workspace-head {
+      display: flex;
+      min-height: 68px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--borde);
+      background: linear-gradient(110deg, rgba(var(--acento-rgb), .06), transparent 60%);
+    }
+    .algorithm-title { display: flex; min-width: 0; align-items: center; gap: 11px; }
+    .algorithm-icon {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      flex: 0 0 36px;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--acento-suave);
+      color: var(--acento);
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .algorithm-title h2 { overflow: hidden; margin: 0; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .algorithm-title p { margin: 4px 0 0; color: var(--suave); font-size: 10px; }
+    .open-link {
+      flex: 0 0 auto;
+      padding: 8px 11px;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      background: var(--superficie-alta);
+      color: #c5cada;
+      font-size: 11px;
+      text-decoration: none;
+      transition: border-color .18s ease, color .18s ease;
+    }
+    .open-link:hover { border-color: rgba(var(--acento-rgb), .45); color: var(--texto); }
+    .frame-wrap { min-height: 580px; padding: 13px; background: var(--fondo); }
+    .visualizer {
+      display: block;
+      width: 100%;
+      min-height: 720px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--fondo);
+    }
+    .loading {
+      display: grid;
+      min-height: 580px;
+      place-items: center;
+      color: var(--suave);
+      font-size: 12px;
+    }
+    .loading[hidden] { display: none; }
+    .footer-note { margin: 13px 2px 0; color: #767d90; font-size: 10px; }
+    .scrim { display: none; }
+
+    body[data-theme="Black"] {
+      color-scheme: dark;
+      --fondo: #050505;
+      --superficie: #0d0d0d;
+      --superficie-alta: #171717;
+      --borde: #2b2b2b;
+      --texto: #f4f4f4;
+      --suave: #a3a3a3;
+      --acento: #d6d6d6;
+      --acento-rgb: 214, 214, 214;
+      --acento-suave: #242424;
+      --sombra: 0 24px 70px #000000cc;
+    }
+    body[data-theme="Black"] .sidebar { background: linear-gradient(180deg, #111111, #050505 72%); }
+    body[data-theme="White"] {
+      color-scheme: light;
+      --fondo: #f3f5f8;
+      --superficie: #ffffff;
+      --superficie-alta: #e9edf3;
+      --borde: #d4dbe6;
+      --texto: #202635;
+      --suave: #606c80;
+      --acento: #5869c9;
+      --acento-rgb: 88, 105, 201;
+      --acento-suave: #e8ebfb;
+    }
+    body[data-theme="wine"] {
+      color-scheme: dark;
+      --fondo: #160d12;
+      --superficie: #21131b;
+      --superficie-alta: #301d28;
+      --borde: #543545;
+      --texto: #f7eaf0;
+      --suave: #c0a5b2;
+      --acento: #e184a7;
+      --acento-rgb: 225, 132, 167;
+      --acento-suave: #422235;
+    }
+    body[data-theme="purple"] {
+      color-scheme: dark;
+      --fondo: #130e1b;
+      --superficie: #1c1528;
+      --superficie-alta: #2a1e3e;
+      --borde: #453355;
+      --texto: #f3ecfb;
+      --suave: #b2a3c6;
+      --acento: #c394ff;
+      --acento-rgb: 195, 148, 255;
+      --acento-suave: #35254b;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 240px; transform: translateX(-100%); transition: transform .22s ease; }
+      body.menu-open .sidebar { transform: translateX(0); }
+      .scrim { position: fixed; z-index: 4; inset: 0; background: #06070bb3; }
+      body.menu-open .scrim { display: block; }
+      .main { margin-left: 0; padding-right: 24px; padding-left: 24px; }
+      .menu-toggle { display: inline-grid; place-items: center; }
+      .topbar { justify-content: flex-start; gap: 12px; }
+      .top-actions { margin-left: auto; }
+    }
+    @media (max-width: 600px) {
+      .main { padding-right: 14px; padding-left: 14px; }
+      .topbar { height: 64px; }
+      .breadcrumb { font-size: 10px; }
+      .theme-control { gap: 6px; padding: 6px; }
+      .theme-control label { display: none; }
+      .theme-select { max-width: 100px; }
+      .intro { padding-top: 28px; }
+      .workspace-head { padding: 11px; }
+      .open-link { padding: 7px 8px; font-size: 10px; }
+      .frame-wrap { min-height: 520px; padding: 7px; }
+      .visualizer { min-height: 690px; }
+    }
+  </style>
+</head>
+<body data-theme="Black">
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Navegación de algoritmos">
+      <a class="brand" href="#" aria-label="SortLab, inicio">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span>
+          <span class="brand-name">SortLab</span>
+          <span class="brand-caption">Laboratorio de ordenamiento</span>
+        </span>
+      </a>
+
+      <p class="nav-label">Comparación simple</p>
+      <nav class="nav-list" aria-label="Algoritmos de comparación simple">
+        <button class="nav-item" type="button" data-algorithm="bubble">
+          <span class="nav-icon" aria-hidden="true">B</span>
+          <span class="nav-copy"><span class="nav-name">Bubble Sort</span><span class="nav-kind">Intercambia elementos vecinos</span></span>
+        </button>
+        <button class="nav-item" type="button" data-algorithm="insertion">
+          <span class="nav-icon" aria-hidden="true">I</span>
+          <span class="nav-copy"><span class="nav-name">Insertion Sort</span><span class="nav-kind">Inserta cada elemento en su sitio</span></span>
+        </button>
+        <button class="nav-item" type="button" data-algorithm="selection">
+          <span class="nav-icon" aria-hidden="true">S</span>
+          <span class="nav-copy"><span class="nav-name">Selection Sort</span><span class="nav-kind">Selecciona el mínimo pendiente</span></span>
+        </button>
+      </nav>
+
+      <p class="nav-label">Comparación eficiente</p>
+      <nav class="nav-list" aria-label="Algoritmos de comparación eficiente">
+        <button class="nav-item" type="button" data-algorithm="merge">
+          <span class="nav-icon" aria-hidden="true">M</span>
+          <span class="nav-copy"><span class="nav-name">Merge Sort</span><span class="nav-kind">Divide y combina subarreglos</span></span>
+        </button>
+        <button class="nav-item" type="button" data-algorithm="quick">
+          <span class="nav-icon" aria-hidden="true">Q</span>
+          <span class="nav-copy"><span class="nav-name">Quick Sort</span><span class="nav-kind">Ordena alrededor de un pivote</span></span>
+        </button>
+      </nav>
+
+      <p class="nav-label">Ordenamiento lineal</p>
+      <nav class="nav-list" aria-label="Algoritmos de ordenamiento lineal">
+        <button class="nav-item" type="button" data-algorithm="radix">
+          <span class="nav-icon" aria-hidden="true">R</span>
+          <span class="nav-copy"><span class="nav-name">Radix Sort</span><span class="nav-kind">Agrupa por dígitos</span></span>
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <strong>6 animaciones</strong><br>
+        Explora cada método a tu ritmo.
+      </div>
+    </aside>
+    <button class="scrim" type="button" aria-label="Cerrar menú"></button>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">☰</button>
+        <div class="breadcrumb">EDA II <span aria-hidden="true">/</span> <strong>Visualizador de algoritmos</strong></div>
+        <div class="top-actions">
+          <div class="theme-control">
+            <label for="themeSelect">Paleta</label>
+            <select class="theme-select" id="themeSelect" aria-label="Cambiar la paleta de colores de las simulaciones">
+              <option value="Black">Black</option>
+              <option value="White">Blanco</option>
+              <option value="wine">Vino</option>
+              <option value="purple">Morado</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <section class="intro">
+        <div class="eyebrow">Proyecto EDA II</div>
+        <h1>Algoritmos de Ordenamiento</h1>
+        <p>Cada algoritmo tiene su propia forma de ordenar los numeros pero todos cumplen con la misma finalidad: organizarlos en un orden específico.</p>
+      </section>
+
+      <section class="workspace" aria-label="Visualizador del algoritmo seleccionado">
+        <div class="workspace-head">
+          <div class="algorithm-title">
+            <span class="algorithm-icon" id="activeIcon" aria-hidden="true">B</span>
+            <div>
+              <h2 id="activeTitle">Bubble Sort</h2>
+              <p id="activeKind">Intercambia elementos vecinos</p>
+            </div>
+          </div>
+          <a class="open-link" id="openLink" href="BubbleSort/index.html?palette=Black" target="_blank" rel="noopener">Abrir por separado ↗</a>
+        </div>
+        <div class="frame-wrap">
+          <div class="loading" id="loadingMessage" role="status" hidden>Cargando animación…</div>
+          <iframe class="visualizer" id="visualizer" title="Animación de Bubble Sort" src="BubbleSort/index.html?palette=Black"></iframe>
+        </div>
+      </section>
+      <p class="footer-note">Los controles de cada animación son independientes. Cambia de algoritmo desde la barra lateral.</p>
+    </main>
+  </div>
+  <script>
+    const algorithms = {
+      bubble: { title: "Bubble Sort", kind: "Intercambia elementos vecinos", icon: "B", path: "BubbleSort/index.html" },
+      insertion: { title: "Insertion Sort", kind: "Inserta cada elemento en su sitio", icon: "I", path: "Insertion/index.html" },
+      selection: { title: "Selection Sort", kind: "Selecciona el mínimo pendiente", icon: "S", path: "SelectionSort/index.html" },
+      merge: { title: "Merge Sort", kind: "Divide y combina subarreglos", icon: "M", path: "Merge/index.html" },
+      quick: { title: "Quick Sort", kind: "Ordena alrededor de un pivote", icon: "Q", path: "Quicksort/index.html" },
+      radix: { title: "Radix Sort", kind: "Agrupa por dígitos", icon: "R", path: "Radixsort/index.html" }
+    };
+
+    const frame = document.getElementById("visualizer");
+    const loadingMessage = document.getElementById("loadingMessage");
+    const menuToggle = document.querySelector(".menu-toggle");
+    const scrim = document.querySelector(".scrim");
+    const themeSelect = document.getElementById("themeSelect");
+    let activePalette = themeSelect.value;
+    let activeAlgorithmPath = algorithms.bubble.path;
+
+    function paletteUrl(path) {
+      return `${path}?palette=${encodeURIComponent(activePalette)}`;
+    }
+
+    function sendPaletteToSimulation() {
+      frame.contentWindow.postMessage({ type: "sortlab-theme", palette: activePalette }, "*");
+    }
+
+    frame.addEventListener("load", () => {
+      loadingMessage.hidden = true;
+      sendPaletteToSimulation();
+    });
+
+    function selectAlgorithm(key) {
+      const algorithm = algorithms[key];
+      if (!algorithm) return;
+
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        const selected = item.dataset.algorithm === key;
+        if (selected) item.setAttribute("aria-current", "page");
+        else item.removeAttribute("aria-current");
+      });
+
+      document.getElementById("activeTitle").textContent = algorithm.title;
+      document.getElementById("activeKind").textContent = algorithm.kind;
+      document.getElementById("activeIcon").textContent = algorithm.icon;
+      activeAlgorithmPath = algorithm.path;
+      document.getElementById("openLink").href = paletteUrl(activeAlgorithmPath);
+      frame.title = `Animación de ${algorithm.title}`;
+      loadingMessage.hidden = false;
+      frame.src = paletteUrl(activeAlgorithmPath);
+      closeMenu();
+    }
+
+    function closeMenu() {
+      document.body.classList.remove("menu-open");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.setAttribute("aria-label", "Abrir menú");
+    }
+
+    document.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => selectAlgorithm(item.dataset.algorithm));
+    });
+
+    themeSelect.addEventListener("change", (event) => {
+      activePalette = event.target.value;
+      document.body.dataset.theme = activePalette;
+      document.getElementById("openLink").href = paletteUrl(activeAlgorithmPath);
+      sendPaletteToSimulation();
+    });
+
+    menuToggle.addEventListener("click", () => {
+      const isOpen = document.body.classList.toggle("menu-open");
+      menuToggle.setAttribute("aria-expanded", String(isOpen));
+      menuToggle.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
+    });
+    scrim.addEventListener("click", closeMenu);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+  </script>
+</body>
+</html>

@@ -42,7 +42,7 @@ function actualizarColorBarra(barra) {
         : 0;
     barra.style.setProperty("--progreso", `${porcentaje}%`);
 }
-const PALETA = {
+let PALETA = {
     fondo: "#100c0e",
     normalFondo: "#261a20",
     normalBorde: "#593644",
@@ -66,6 +66,16 @@ const PALETA = {
     mayoresBorde: "#8478d8",
     mayoresTexto: "#ece8ff",
 };
+function aplicarTemaDeSortLab() {
+    if (window.SortLabTheme)
+        Object.assign(PALETA, window.SortLabTheme.getPalette());
+}
+aplicarTemaDeSortLab();
+window.addEventListener("sortlab-theme-change", () => {
+    aplicarTemaDeSortLab();
+    if (typeof actualizarVista === "function")
+        actualizarVista();
+});
 let pasos = [];
 let pasoActual = 0;
 let playing = false;
@@ -298,7 +308,8 @@ function dibujarEstado(estado) {
             texto = PALETA.compararTexto;
             alpha = 1;
         }
-        dibujarCaja(xDe(k), mainY, estado.arr[k], fondo, borde, texto, alpha);
+        const elevacion = (!estado.done && (estado.comp.includes(k) || estado.pivote === k)) ? 16 : 0;
+        dibujarCaja(xDe(k), mainY - elevacion, estado.arr[k], fondo, borde, texto, alpha);
     }
     // Etiqueta "pivote" sobre la casilla del pivote
     if (estado.pivote !== null && !estado.done) {
@@ -352,11 +363,36 @@ function dibujarEstado(estado) {
 function actualizarVista() {
     if (pasos.length === 0)
         return;
-    dibujarEstado(pasos[pasoActual]);
+    const estado = pasos[pasoActual];
+    dibujarEstado(estado);
+    if (pasoActual > 0 && window.SortLabTheme) {
+        const anterior = pasos[pasoActual - 1];
+        const cambios = estado.arr.flatMap((valor, indice) =>
+            valor === anterior.arr[indice] ? [] : [indice]
+        );
+        if (cambios.length === 2
+            && anterior.arr[cambios[0]] === estado.arr[cambios[1]]
+            && anterior.arr[cambios[1]] === estado.arr[cambios[0]]) {
+            const n = estado.arr.length;
+            const margen = 5;
+            const boxW = Math.min(60, (W - margen * (n + 1)) / n);
+            const x0 = (W - (n * boxW + (n - 1) * margen)) / 2 + boxW / 2;
+            const mainY = 96 + 25;
+            const tamaño = boxW < 30 ? 12 : boxW < 45 ? 16 : 20;
+            const [i, j] = cambios;
+            const elevacion = (indice) =>
+                estado.comp.includes(indice) || estado.pivote === indice ? 16 : 0;
+            const elevacionAnterior = (indice) =>
+                anterior.comp.includes(indice) || anterior.pivote === indice ? 16 : 0;
+            window.SortLabTheme.animarIntercambio(canvas, [
+                { x1: x0 + i * (boxW + margen), y1: mainY - elevacionAnterior(i), limpiarY1: mainY - elevacion(i), x2: x0 + j * (boxW + margen), y2: mainY - elevacion(j), limpiarY2: mainY - elevacion(j), valor: anterior.arr[i], width: boxW, height: 50, fontSize: tamaño, scale: 0.65 },
+                { x1: x0 + j * (boxW + margen), y1: mainY - elevacionAnterior(j), limpiarY1: mainY - elevacion(j), x2: x0 + i * (boxW + margen), y2: mainY - elevacion(i), limpiarY2: mainY - elevacion(i), valor: anterior.arr[j], width: boxW, height: 50, fontSize: tamaño, scale: 0.65 }
+            ]);
+        }
+    }
     barraPasos.value = String(pasoActual);
     actualizarColorBarra(barraPasos);
     infoLabel.textContent = `Paso: ${pasoActual + 1} / ${pasos.length}`;
-    const estado = pasos[pasoActual];
     tituloPaso.textContent = estado.titulo;
     explicacionPaso.textContent = estado.explicacion;
     detallePaso.textContent = estado.detalle;
@@ -376,8 +412,6 @@ function actualizarVista() {
         return elemento;
     });
     registro.replaceChildren(...elementosRegistro);
-    const pasoVisible = registro.querySelector(".actual");
-    pasoVisible?.scrollIntoView({ block: "nearest" });
 }
 function cargar(valores) {
     detener();
@@ -433,7 +467,7 @@ function play() {
         siguiente();
         if (pasoActual >= pasos.length - 1)
             detener();
-    }, 450);
+    }, Math.round(1500 / window.SortLabTheme.getPlaybackSpeed()));
 }
 function detener() {
     playing = false;
@@ -472,5 +506,12 @@ btnPlay.onclick = () => {
     else
         play();
 };
+window.SortLabTheme.crearControlVelocidad(btnPlay.parentElement);
+window.addEventListener("sortlab-speed-change", () => {
+    if (playing) {
+        detener();
+        play();
+    }
+});
 generar();
 actualizarColorBarra(inputNum);
