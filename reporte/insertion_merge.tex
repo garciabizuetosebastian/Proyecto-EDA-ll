@@ -1,0 +1,119 @@
+% ============================================================
+% Fragmento: algoritmos de ordenamiento (Insertion Sort y Merge Sort)
+% Sin título ni portada: pensado para incluirse con \input{...}
+% Paquetes necesarios en el preámbulo del reporte principal:
+%   \usepackage[utf8]{inputenc}, \usepackage[spanish]{babel},
+%   \usepackage{amsmath}, \usepackage{booktabs}
+% ============================================================
+
+\section{Insertion Sort (ordenamiento por inserción)}
+
+\subsection{Funcionamiento}
+
+El ordenamiento por inserción construye el arreglo ordenado \emph{de izquierda a derecha}, de manera similar a como se ordenan las cartas de una mano. Al inicio, el primer elemento ya se considera una lista ordenada de tamaño uno; a partir de ahí, en cada pasada se toma el siguiente elemento, llamado \textbf{clave}, y se inserta en la posición correcta dentro de la parte que ya está ordenada.
+
+Para un arreglo \texttt{arr} de $n$ elementos, el algoritmo realiza lo siguiente:
+
+\begin{enumerate}
+  \item Para cada posición $i$ desde $1$ hasta $n-1$, se guarda la clave \texttt{clave = arr[i]} y se inicializa $j = i - 1$. En ese momento la posición $i$ queda como un ``hueco''.
+  \item Mientras $j \geq 0$ y \texttt{arr[j] > clave}, el elemento \texttt{arr[j]} se desplaza una posición a la derecha (\texttt{arr[j+1] = arr[j]}) y se decrementa $j$. De este modo el hueco se va recorriendo hacia la izquierda.
+  \item Cuando se encuentra un elemento que no es mayor que la clave, o se llega al inicio del arreglo, se coloca la clave en el hueco: \texttt{arr[j+1] = clave}.
+  \item Al terminar la pasada $i$, las posiciones $0$ a $i$ contienen los mismos elementos en orden creciente.
+\end{enumerate}
+
+Al concluir la pasada $n-1$ todo el arreglo queda ordenado. En la implementación en TypeScript del visualizador, cada una de estas acciones (tomar la clave, comparar, desplazar e insertar) se registra como un paso independiente, de modo que se puede observar cómo la parte ordenada crece de izquierda a derecha mientras la clave permanece ``levantada'' sobre el hueco.
+
+Como el desplazamiento solo ocurre cuando \texttt{arr[j] > clave} (comparación estricta), los elementos iguales nunca se intercambian entre sí y conservan su orden relativo, por lo que el algoritmo es \textbf{estable}. Además, trabaja \textbf{in situ}: solo requiere una variable auxiliar para la clave.
+
+\subsection{Complejidad en tiempo}
+
+El trabajo del algoritmo depende de cuántas veces se ejecuta el ciclo interno (comparaciones y desplazamientos) en cada pasada, lo cual depende a su vez del orden inicial de los datos.
+
+\paragraph{Mejor caso.} Ocurre cuando el arreglo ya está ordenado de forma ascendente. En cada pasada la primera comparación (\texttt{arr[i-1] > clave}) resulta falsa, por lo que el ciclo interno termina de inmediato y no hay desplazamientos. Se realizan $n-1$ comparaciones en total, así que el tiempo es lineal:
+\[
+  T_{\text{mejor}}(n) = n - 1 \in \Theta(n).
+\]
+
+\paragraph{Peor caso.} Ocurre cuando el arreglo está ordenado de forma descendente. En la pasada $i$, la clave es menor que todos los elementos de la parte ordenada, de modo que se desplazan los $i$ elementos y se llega hasta el inicio del arreglo. El número total de comparaciones (y de desplazamientos) es
+\[
+  T_{\text{peor}}(n) = \sum_{i=1}^{n-1} i = \frac{n(n-1)}{2} \in \Theta(n^2).
+\]
+
+\paragraph{Caso promedio.} Para datos en orden aleatorio, en cada pasada la clave se desplaza en promedio la mitad de la parte ordenada, por lo que se hacen aproximadamente $n^2/4$ desplazamientos. El tiempo promedio sigue siendo $\Theta(n^2)$.
+
+\subsection{Complejidad en espacio}
+
+El algoritmo solo utiliza un número constante de variables adicionales (\texttt{clave}, $i$ y $j$), sin importar el tamaño de la entrada. Por lo tanto, su complejidad espacial auxiliar es
+\[
+  S(n) \in O(1).
+\]
+
+\newpage
+
+\section{Merge Sort (ordenamiento por mezcla)}
+
+\subsection{Funcionamiento}
+
+Merge Sort sigue la estrategia \textbf{divide y vencerás}, que consta de tres etapas:
+
+\begin{enumerate}
+  \item \textbf{Dividir:} el subarreglo \texttt{arr[lo..hi]} se parte en dos mitades a partir de la posición intermedia $\texttt{medio} = \lfloor (lo + hi)/2 \rfloor$. La mitad izquierda abarca de \texttt{lo} a \texttt{medio} y la derecha de \texttt{medio + 1} a \texttt{hi}.
+  \item \textbf{Vencer:} cada mitad se ordena de forma recursiva con el mismo procedimiento. El \textbf{caso base} se da cuando \texttt{lo = hi}, es decir, cuando el subarreglo tiene un solo elemento, el cual ya está ordenado por definición.
+  \item \textbf{Combinar (mezclar):} las dos mitades, que ya están ordenadas, se fusionan en un solo bloque ordenado.
+\end{enumerate}
+
+La operación de mezcla es el núcleo del algoritmo. Se utiliza una lista auxiliar y tres índices: $i$ recorre la mitad izquierda, $j$ la mitad derecha y $k$ la posición de escritura en el auxiliar.
+
+\begin{enumerate}
+  \item Mientras queden elementos en ambas mitades, se comparan \texttt{arr[i]} y \texttt{arr[j]}. El menor de los dos se copia al auxiliar y se avanza el índice de la mitad de la que provino (en caso de empate se toma el de la izquierda, pues la condición es $\leq$).
+  \item Cuando una de las mitades se agota, los elementos restantes de la otra se copian directamente al auxiliar, ya que están ordenados y son mayores o iguales que todo lo colocado hasta ese momento.
+  \item Finalmente, el contenido del auxiliar se copia de regreso a \texttt{arr[lo..hi]}, que queda ordenado.
+\end{enumerate}
+
+El procedimiento general consiste entonces en dividir el arreglo hasta obtener elementos individuales y después mezclar bloques cada vez más grandes hasta reconstruir el arreglo completo. Esto es lo que muestra el visualizador: primero las divisiones sucesivas por niveles y luego las mezclas, con la lista auxiliar dibujada debajo del arreglo.
+
+Debido a que en la mezcla se prefiere el elemento de la izquierda en caso de igualdad, Merge Sort es un algoritmo \textbf{estable}.
+
+\subsection{Complejidad en tiempo}
+
+La división del arreglo en mitades genera un árbol de recursión de aproximadamente $\lceil \log_2 n \rceil$ niveles. En cada nivel, la mezcla recorre cada elemento una sola vez, lo que representa un trabajo de $\Theta(n)$ por nivel. El tiempo satisface la recurrencia
+\[
+  T(n) = 2\,T\!\left(\frac{n}{2}\right) + \Theta(n), \qquad T(1) = \Theta(1),
+\]
+cuya solución, por el Teorema Maestro, es $T(n) = \Theta(n \log n)$.
+
+\paragraph{Mejor caso.} Si el arreglo ya está ordenado, en cada mezcla todos los elementos de la mitad izquierda son menores o iguales que los de la derecha, por lo que solo se hacen alrededor de $\frac{n}{2}\log_2 n$ comparaciones en total. Aun así, todos los elementos se siguen copiando al auxiliar y de regreso al arreglo en cada nivel, por lo que el tiempo continúa siendo $\Theta(n \log n)$.
+
+\paragraph{Peor caso.} Ocurre cuando las mezclas deben alternar elementos de ambas mitades hasta casi agotarlas, con lo que se realizan aproximadamente $n\log_2 n - n + 1$ comparaciones (para $n$ potencia de 2). El tiempo es $\Theta(n \log n)$.
+
+\paragraph{Caso promedio.} También es $\Theta(n \log n)$. Una característica importante de Merge Sort es que su tiempo de ejecución casi no depende del orden inicial de los datos.
+
+\subsection{Complejidad en espacio}
+
+La mezcla requiere una lista auxiliar de hasta $n$ posiciones para almacenar temporalmente los elementos ordenados (en la implementación, un arreglo \texttt{aux} del mismo tamaño que \texttt{arr}). Adicionalmente, la recursión utiliza una pila de llamadas de profundidad $O(\log n)$. En conjunto, la complejidad espacial auxiliar es
+\[
+  S(n) \in O(n).
+\]
+Por esta razón, Merge Sort \textbf{no} es un algoritmo in situ.
+
+\section{Comparación de los algoritmos}
+
+\begin{table}[h]
+  \centering
+  \caption{Comparación entre Insertion Sort y Merge Sort.}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Característica} & \textbf{Insertion Sort} & \textbf{Merge Sort} \\
+    \midrule
+    Mejor caso            & $\Theta(n)$   & $\Theta(n \log n)$ \\
+    Caso promedio         & $\Theta(n^2)$ & $\Theta(n \log n)$ \\
+    Peor caso             & $\Theta(n^2)$ & $\Theta(n \log n)$ \\
+    Espacio auxiliar      & $O(1)$        & $O(n)$ \\
+    Estable               & Sí            & Sí \\
+    In situ               & Sí            & No \\
+    Estrategia            & Incremental   & Divide y vencerás \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Insertion Sort es muy eficiente para arreglos pequeños o casi ordenados, ya que en esos casos su tiempo se acerca a $\Theta(n)$ y no requiere memoria adicional. Merge Sort, en cambio, garantiza $\Theta(n \log n)$ sin importar la distribución de los datos, a cambio de utilizar memoria auxiliar proporcional al tamaño de la entrada; por ello resulta preferible para conjuntos de datos grandes.
