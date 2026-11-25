@@ -1,25 +1,10 @@
-const TEMA_INICIAL = window.SortLabTheme?.getPalette();
-let BG = TEMA_INICIAL?.fondo || "#050505";
-let PANEL = TEMA_INICIAL?.normalFondo || "#151515";
-let AZUL = TEMA_INICIAL?.compararBorde || "#d6d6d6";
-let ROJO = TEMA_INICIAL?.normalBorde || "#383838";
-let AMARILLO = TEMA_INICIAL?.minimoBorde || "#e0bc72";
-let NARANJA = TEMA_INICIAL?.pivoteBorde || "#e0bc72";
-let VERDE = TEMA_INICIAL?.exitoBorde || "#64c9a7";
-
-window.addEventListener("sortlab-theme-change", () => {
-    if (!window.SortLabTheme) return;
-    const tema = window.SortLabTheme.getPalette();
-    BG = tema.fondo;
-    PANEL = tema.normalFondo;
-    AZUL = tema.compararBorde;
-    ROJO = tema.normalBorde;
-    AMARILLO = tema.minimoBorde;
-    NARANJA = tema.pivoteBorde;
-    VERDE = tema.exitoBorde;
-    if (window.__sortLabVisualizer)
-        window.__sortLabVisualizer.dibujar();
-});
+const BG = "#ffffff";
+const PANEL = "#151515";
+const AZUL = "#4da3ff";
+const ROJO = "#ff3158";
+const AMARILLO = "#ffd166";
+const NARANJA = "#ff8f42";
+const VERDE = "#63d6a5";
 const CODE = [
     "def counting_sort(lista):",
     "    minimo = min(lista)",
@@ -79,13 +64,6 @@ class Visualizador {
         this.pasos = generarPasos(this.datos);
         this.host = this.crearInterfaz();
         this.animationFrame = undefined;
-        window.SortLabTheme.crearControlVelocidad(this.host.querySelector("#play").parentElement);
-        window.addEventListener("sortlab-speed-change", () => {
-            if (this.timer !== undefined) {
-                this.detener();
-                this.reproducir();
-            }
-        });
     }
     crearInterfaz() {
         const host = document.createElement("main");
@@ -239,7 +217,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-        }, Math.round(900 / window.SortLabTheme.getPlaybackSpeed()));
+        }, 900);
     }
     detener() {
         if (this.timer !== undefined)
@@ -317,7 +295,7 @@ class Visualizador {
         const countStartX = (width - countWidth) / 2;
         const countY = height - countCardHeight - 8;
         const countTitleY = countY - 15;
-        const duration = 760 / window.SortLabTheme.getPlaybackSpeed();
+        const duration = 760;
         let startTime;
 
         const drawCard = (x, y, w, h, value, color, size) => {
@@ -439,6 +417,5 @@ class Visualizador {
     }
 }
 function iniciar(cantidad = 15, semilla) {
-    window.__sortLabVisualizer = new Visualizador(cantidad, semilla);
-    return window.__sortLabVisualizer.montar();
+    return new Visualizador(cantidad, semilla).montar();
 }
