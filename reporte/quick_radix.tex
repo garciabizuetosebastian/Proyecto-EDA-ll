@@ -1,0 +1,135 @@
+% ============================================================
+% Fragmento: algoritmos de ordenamiento (Quick Sort y Radix Sort)
+% Sin título ni portada: pensado para incluirse con \input{...}
+% Paquetes necesarios en el preámbulo del reporte principal:
+%   \usepackage[T1]{frontenc}, 
+%   \usepackage[utf8]{inputenc}, \usepackage[spanish]{babel},
+%   \usepackage{amsmath}, \usepackage{booktabs}
+% ============================================================
+
+\section{Quick Sort (ordenamiento rápido)}
+
+\subsection{Funcionamiento}
+
+Quick Sort también sigue la estrategia \textbf{divide y vencerás}, pero a diferencia de Merge Sort el trabajo importante se hace al \emph{dividir} y no al combinar. Consta de tres etapas:
+
+\begin{enumerate}
+  \item \textbf{Dividir (particionar):} se elige un \textbf{pivote}, que en la implementación es el último elemento del subarreglo, \texttt{arr[hi]}. Luego se reorganiza \texttt{arr[lo..hi]} de modo que el pivote quede en su posición definitiva $p$, con todos los elementos de \texttt{arr[lo..p-1]} menores que el pivote y todos los de \texttt{arr[p+1..hi]} mayores o iguales.
+  \item \textbf{Vencer:} las dos partes que quedaron a cada lado del pivote, \texttt{arr[lo..p-1]} y \texttt{arr[p+1..hi]}, se ordenan de forma recursiva con el mismo procedimiento. El \textbf{caso base} se da cuando \texttt{lo >= hi}, es decir, cuando el subarreglo tiene cero o un elemento, el cual ya está ordenado.
+  \item \textbf{Combinar:} no hace falta ningún trabajo. Como la partición se hace sobre el propio arreglo y el pivote ya quedó en su lugar, cuando terminan las llamadas recursivas \texttt{arr[lo..hi]} ya está ordenado.
+\end{enumerate}
+
+La operación de partición (esquema de Lomuto) es el núcleo del algoritmo. Se utilizan dos índices: $j$ recorre el subarreglo desde \texttt{lo} hasta \texttt{hi - 1} e $i$ marca el final de la zona de elementos menores que el pivote (empieza en $\texttt{lo} - 1$, es decir, con la zona vacía).
+
+\begin{enumerate}
+  \item Se toma \texttt{pivote = arr[hi]} y se inicia \texttt{i = lo - 1}.
+  \item Para cada $j$ de \texttt{lo} a \texttt{hi - 1} se compara \texttt{arr[j]} con el pivote. Si \texttt{arr[j] < pivote}, se incrementa $i$ y se intercambian \texttt{arr[i]} y \texttt{arr[j]}, de modo que el elemento entra a la zona de menores (si $i = j$ no hace falta mover nada). En caso contrario, \texttt{arr[j]} se queda donde está, en la zona de mayores o iguales.
+  \item Al terminar el recorrido, se intercambia el pivote \texttt{arr[hi]} con \texttt{arr[i + 1]}. El pivote queda en la posición $p = i + 1$, que es la que ocupará en el arreglo ordenado.
+\end{enumerate}
+
+Durante el recorrido se cumple en todo momento que \texttt{arr[lo..i]} contiene elementos menores que el pivote, \texttt{arr[i+1..j-1]} contiene elementos mayores o iguales, y \texttt{arr[j..hi-1]} contiene los elementos que aún no se han revisado.
+
+El procedimiento general consiste entonces en elegir un pivote, repartir los demás elementos a sus lados y repetir lo mismo con cada lado, que son subarreglos cada vez más pequeños, hasta que todos los elementos quedan en su posición definitiva. Esto es lo que muestra el visualizador: el pivote se marca en dorado, la zona de menores en verde azulado y la de mayores o iguales en violeta, con los índices $i$ y $j$ señalados debajo de las casillas y las posiciones definitivas en el color de ``ya ordenado''.
+
+Debido a que la partición intercambia elementos que pueden estar muy separados entre sí, Quick Sort \textbf{no} es un algoritmo estable. Por ejemplo, con tres elementos iguales $1_a, 1_b, 1_c$ (en ese orden), esta implementación los deja como $1_c, 1_a, 1_b$.
+
+\subsection{Complejidad en tiempo}
+
+El costo de una partición sobre un subarreglo de $m$ elementos es $\Theta(m)$, pues cada elemento se compara con el pivote exactamente una vez ($m - 1$ comparaciones). Si el pivote queda con $k$ elementos a su izquierda, el tiempo satisface la recurrencia
+\[
+  T(n) = T(k) + T(n - k - 1) + \Theta(n), \qquad T(0) = T(1) = \Theta(1),
+\]
+por lo que el tiempo depende de qué tan equilibrada sea la división, es decir, de qué tan buena sea la elección del pivote.
+
+\paragraph{Mejor caso.} Ocurre cuando el pivote cae siempre en medio del subarreglo, de modo que $k \approx n/2$ en cada partición. La recurrencia se convierte en $T(n) = 2\,T(n/2) + \Theta(n)$, cuya solución, por el Teorema Maestro, es $T(n) = \Theta(n \log n)$. Cuando $n = 2^k - 1$ y las divisiones son perfectas, se realizan exactamente $(n+1)\log_2(n+1) - 2n$ comparaciones.
+
+\paragraph{Peor caso.} Ocurre cuando el pivote es siempre el menor o el mayor elemento del subarreglo: una de las partes queda vacía y la otra conserva $n - 1$ elementos. Entonces $T(n) = T(n-1) + \Theta(n)$ y se realizan $(n-1) + (n-2) + \cdots + 1 = n(n-1)/2$ comparaciones, es decir, $T(n) = \Theta(n^2)$. Con el último elemento como pivote esto sucede, por ejemplo, cuando el arreglo ya está ordenado (ascendente o descendente) o cuando todos los elementos son iguales (ninguno es menor que el pivote, así que todos van a la derecha).
+
+\paragraph{Caso promedio.} Si todas las permutaciones de los datos son igualmente probables, el número esperado de comparaciones es
+\[
+  C(n) = 2(n+1)H_n - 4n,
+\]
+donde $H_n$ es el $n$-ésimo número armónico. Esta cantidad crece como $2n\ln n \approx 1.39\,n\log_2 n$, por lo que el tiempo promedio es $\Theta(n \log n)$. Incluso divisiones muy desiguales, como una proporción de 9 a 1, siguen produciendo $\Theta(n \log n)$: el comportamiento cuadrático solo aparece si las divisiones son extremas de forma sistemática.
+
+A diferencia de Merge Sort, el tiempo de Quick Sort \textbf{sí} depende del orden inicial de los datos. En la práctica se reduce la probabilidad del peor caso eligiendo el pivote al azar o como la mediana de tres elementos; con pivote aleatorio, el tiempo esperado es $\Theta(n \log n)$ para cualquier entrada.
+
+\subsection{Complejidad en espacio}
+
+Quick Sort no necesita una lista auxiliar: la partición reorganiza los elementos dentro del propio arreglo mediante intercambios, por lo que cada llamada usa $O(1)$ de memoria adicional. Lo único que consume memoria es la pila de llamadas de la recursión, cuya profundidad es la altura del árbol de recursión: $O(\log n)$ en el mejor caso y en promedio, pero $O(n)$ en el peor caso, cuando las divisiones son extremas. Así,
+\[
+  S(n) \in O(\log n) \ \text{(caso promedio)}, \qquad S(n) \in O(n) \ \text{(peor caso)}.
+\]
+Por esta razón, Quick Sort se considera un algoritmo \textbf{in situ}, pues no usa un arreglo auxiliar, aunque no lo es en sentido estricto por la pila de recursión. Si se hace primero la llamada recursiva sobre la parte más pequeña y la otra parte se procesa con un ciclo, la profundidad de la pila queda acotada por $O(\log n)$ incluso en el peor caso (la implementación del visualizador no aplica esta optimización).
+
+\section{Radix Sort (ordenamiento por residuos)}
+
+\subsection{Funcionamiento}
+
+Radix Sort es un algoritmo que \textbf{no compara} los elementos entre sí: los ordena repartiéndolos en cubetas según sus dígitos. La versión que se estudia aquí es la LSD (\emph{least significant digit}) para números enteros no negativos en base $b = 10$: se procesa un dígito a la vez, empezando por el menos significativo (las unidades) y avanzando hacia el más significativo.
+
+\begin{enumerate}
+  \item \textbf{Preparar:} se determina el número de dígitos $d$ del mayor elemento $m$ del arreglo, $d = \lfloor \log_{10} m \rfloor + 1$. Ese será el número de pasadas.
+  \item \textbf{Repetir:} se realizan $d$ pasadas, una por cada posición de dígito $p = 0, 1, \dots, d-1$ (unidades, decenas, centenas, \dots).
+  \item \textbf{Terminar:} después de la última pasada el arreglo queda ordenado.
+\end{enumerate}
+
+Cada pasada utiliza 10 cubetas numeradas del 0 al 9, que son listas que respetan el orden de llegada. El dígito de un número $x$ en la posición $p$ es $\lfloor x / 10^{p} \rfloor \bmod 10$. La pasada tiene dos fases:
+
+\begin{enumerate}
+  \item \textbf{Repartir:} se recorre \texttt{arr} de izquierda a derecha y cada número se coloca al final de la cubeta que corresponde a su dígito en la posición $p$.
+  \item \textbf{Recoger:} se recorren las cubetas de la 0 a la 9 y, dentro de cada una, los números en el orden en que llegaron; se van escribiendo de nuevo en \texttt{arr}, de izquierda a derecha.
+\end{enumerate}
+
+El algoritmo funciona porque, después de la pasada $p$, el arreglo queda ordenado según los $p + 1$ dígitos menos significativos de cada número. Esto se cumple porque cada pasada es \textbf{estable}: dos números con el mismo dígito en la posición actual conservan el orden relativo que traían de las pasadas anteriores, que ya los había ordenado por los dígitos de menor peso. Al terminar la pasada $d - 1$ se han considerado todos los dígitos y el arreglo está completamente ordenado.
+
+Esto es lo que muestra el visualizador: la lista en la parte superior con el dígito analizado resaltado (los ceros a la izquierda se muestran atenuados), las diez cubetas debajo, una flecha que lleva cada número a su cubeta durante el reparto y, después, la recogida de las cubetas en orden.
+
+Como las cubetas respetan el orden de llegada, Radix Sort es un algoritmo \textbf{estable}. Además, al no comparar elementos entre sí, no está sujeto a la cota inferior de $\Omega(n \log n)$ que tienen los algoritmos basados en comparaciones; a cambio, solo puede aplicarse a claves que se puedan descomponer en dígitos (enteros, cadenas de longitud acotada, etc.), y los enteros negativos requieren un tratamiento adicional.
+
+\subsection{Complejidad en tiempo}
+
+En cada pasada se recorren los $n$ elementos para repartirlos, lo que cuesta $\Theta(n)$, y después se recorren las $b$ cubetas para recogerlos, lo que cuesta $\Theta(n + b)$. Una pasada cuesta entonces $\Theta(n + b)$ y, como se realizan $d$ pasadas, el tiempo es
+\[
+  T(n) = \Theta\bigl(d\,(n + b)\bigr),
+\]
+con $b = 10$ y $d = \lfloor \log_{10} m \rfloor + 1$ dígitos.
+
+\paragraph{Mejor caso.} Es $\Theta(d\,(n + b))$. El algoritmo siempre realiza las $d$ pasadas completas, de modo que incluso un arreglo que ya está ordenado se reparte y se recoge por completo en cada pasada.
+
+\paragraph{Peor caso.} También es $\Theta(d\,(n + b))$. El tiempo no depende de cómo estén ordenados los datos, sino de $n$ y de $d$, es decir, de qué tan grandes son los números.
+
+\paragraph{Caso promedio.} Igualmente $\Theta(d\,(n + b))$. Si el número de dígitos $d$ está acotado por una constante (por ejemplo, enteros de 32 bits), Radix Sort es lineal, $\Theta(n)$. Si, en cambio, los valores crecen con $n$ (por ejemplo, hasta $n^c$ con $c$ constante), entonces $d = \Theta(\log n)$ y el tiempo es $\Theta(n \log n)$. En general, Radix Sort supera a los algoritmos basados en comparaciones cuando $d$ es pequeño frente a $\log n$.
+
+\subsection{Complejidad en espacio}
+
+Durante el reparto, los $n$ elementos se encuentran dentro de las cubetas, además de las $b$ cubetas mismas, por lo que se necesita memoria auxiliar proporcional a $n + b$ (en la implementación, las diez cubetas juntas guardan los $n$ números de la pasada). No hay pila de recursión, pues el algoritmo es iterativo. La complejidad espacial auxiliar es
+\[
+  S(n) \in O(n + b) = O(n),
+\]
+ya que $b = 10$ es una constante. Por esta razón, Radix Sort \textbf{no} es un algoritmo in situ.
+
+\section{Comparación de los algoritmos}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Comparación entre Quick Sort y Radix Sort.}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Característica} & \textbf{Quick Sort} & \textbf{Radix Sort} \\
+    \midrule
+    Mejor caso             & $\Theta(n \log n)$ & $\Theta(d\,(n + b))$ \\
+    Caso promedio          & $\Theta(n \log n)$ & $\Theta(d\,(n + b))$ \\
+    Peor caso              & $\Theta(n^2)$      & $\Theta(d\,(n + b))$ \\
+    Espacio aux. promedio  & $O(\log n)$        & $O(n + b)$ \\
+    Espacio aux. peor caso & $O(n)$             & $O(n + b)$ \\
+    Estable                & No                 & Sí \\
+    In situ                & Sí (salvo pila)    & No \\
+    Compara elementos      & Sí                 & No \\
+    Depende del orden      & Sí                 & No \\
+    Estrategia             & Divide y vencerás  & Cubetas por dígito \\
+    Tipo de datos          & Cualquiera         & Enteros \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Quick Sort es una excelente opción de propósito general para ordenar arreglos en memoria: trabaja in situ, requiere poca memoria adicional y su tiempo promedio es $\Theta(n \log n)$. Sus puntos débiles son el peor caso $\Theta(n^2)$, que con un buen criterio para elegir el pivote (al azar o la mediana de tres) se vuelve muy improbable, y que no es estable. Radix Sort, en cambio, tiene un tiempo $\Theta(d\,(n + b))$ que no depende del orden de los datos y que resulta lineal cuando los números tienen pocos dígitos; además es estable y no compara elementos, a cambio de usar memoria auxiliar proporcional a $n$ y de servir solo para claves que se puedan separar en dígitos.

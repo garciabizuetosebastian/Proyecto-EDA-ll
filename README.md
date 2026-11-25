@@ -25,11 +25,11 @@ flowchart TD
 	A[Proyecto EDA_II]
 	B[Animaciones en Python]
 	A --> B -->C
-	C[Bernabe Castillo \nAzariel] --> CC[Bubble sort\nSelection Sort]
+	C[Bernabe Castillo \nAzariel] --> CC[Bubble Sort\nSelection Sort]
 	B --> D 
-	D[García Bizueto \nSebastian]--> DD[Insertion sort\nMerge Sort]
+	D[García Bizueto \nSebastian]--> DD[Insertion Sort\nMerge Sort]
 	B --> E
 	B--> F
 	E[Arteaga Pérez \nZabdiel Dirier] --> EE[Heap Sort\nCountig Sort]
-	F[Hernández Morales \nHanzel Noel] --> FF[Quick sort \n Radix Srot]
+	F[Hernández Morales \nHanzel Noel] --> FF[Quick Sort \n Radix Sort]
 ```
