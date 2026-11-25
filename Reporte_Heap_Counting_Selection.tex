@@ -1,0 +1,666 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------- PAQUETES --------------------
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{caption}
+
+% -------------------- CONFIGURACIÓN --------------------
+\geometry{margin=2.5cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\addto\captionsspanish{%
+    \renewcommand{\tablename}{Tabla}%
+    \renewcommand{\listtablename}{Índice de tablas}%
+}
+\renewcommand{\lstlistingname}{Código}
+
+\definecolor{codegreen}{rgb}{0,0.5,0}
+\definecolor{codegray}{rgb}{0.45,0.45,0.45}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.96}
+
+\lstdefinelanguage{TypeScript}{
+    keywords={const,let,function,class,type,if,else,for,return,new,private,void,number,undefined,export,this},
+    sensitive=true,
+    comment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[b]'
+}
+
+\lstdefinestyle{codigo}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4,
+    language=TypeScript
+}
+
+\lstset{style=codigo}
+
+% -------------------- DOCUMENTO --------------------
+\begin{document}
+
+\section{Introducción}
+
+Los algoritmos de ordenamiento permiten organizar los elementos de una colección siguiendo un criterio, por ejemplo, de menor a mayor. Ordenar los datos facilita tareas posteriores como la búsqueda, la consulta y el análisis de información.
+
+En este proyecto de Estructuras de Datos II se estudian tres algoritmos: Heap Sort, Counting Sort y Selection Sort. Cada uno utiliza una estrategia diferente. Heap Sort organiza los datos mediante un montículo; Counting Sort cuenta las apariciones de cada valor; y Selection Sort busca repetidamente el menor elemento de la parte pendiente.
+
+Además de implementar la lógica de cada método, se construyó un visualizador animado para cada uno. Estas páginas permiten seguir el proceso paso a paso: qué valores se comparan, cuáles cambian de lugar y cómo crece la parte ordenada. La lógica está escrita en TypeScript y se ejecuta en el navegador como JavaScript; HTML proporciona la página y Canvas 2D dibuja los elementos.
+
+En este reporte se explica tanto el funcionamiento de los algoritmos como la forma en que se construyeron las animaciones y el objetivo didáctico de cada una. Los fragmentos de código corresponden a partes importantes de la implementación y no incluyen todo el código de la interfaz.
+
+\section{Objetivos}
+
+\subsection{Objetivo general}
+
+Analizar el funcionamiento de Heap Sort, Counting Sort y Selection Sort mediante su implementación y su visualización animada paso a paso.
+
+\subsection{Objetivos específicos}
+
+\begin{itemize}
+    \item Identificar las estructuras y operaciones utilizadas por cada algoritmo.
+    \item Explicar el uso de montículos, conteos de frecuencia y búsqueda del mínimo.
+    \item Construir visualizadores con HTML, TypeScript, JavaScript y Canvas 2D que muestren los estados intermedios de cada algoritmo.
+    \item Diseñar controles que permitan generar una secuencia nueva, avanzar, retroceder, reproducir y saltar a cualquier paso.
+    \item Relacionar cada paso visual con el código de referencia, los contadores y las instrucciones realizadas.
+    \item Comparar la complejidad temporal y el espacio auxiliar de los tres métodos.
+    \item Verificar el comportamiento con ejemplos y mediciones de los pasos registrados por las animaciones.
+\end{itemize}
+
+\section{Marco teórico}
+
+\subsection{Ordenamiento por comparación}
+
+En un algoritmo de ordenamiento por comparación, las decisiones se basan en comparar valores entre sí. Heap Sort y Selection Sort pertenecen a esta categoría: el primero compara padres e hijos dentro de un montículo, mientras que el segundo compara elementos para encontrar el mínimo pendiente.
+
+Counting Sort pertenece al ordenamiento lineal: no compara cada elemento con los demás, sino que aprovecha que los valores son enteros dentro de un rango conocido.
+
+\subsection{Montículo máximo}
+
+Un montículo máximo, o \textit{max-heap}, es un árbol binario completo en el que cada padre es mayor o igual que sus hijos. Por esta propiedad, el valor máximo se encuentra en la raíz.
+
+El árbol puede representarse en un arreglo. Si un nodo está en la posición \(i\), sus hijos se encuentran en las posiciones:
+
+\[
+\text{izquierdo}=2i+1, \qquad
+\text{derecho}=2i+2
+\]
+
+Estas fórmulas usan índices que comienzan en cero. Heap Sort aprovecha esta representación para ordenar el mismo arreglo sin crear un árbol separado.
+
+\subsection{Conteo de frecuencias}
+
+Una frecuencia indica cuántas veces aparece un valor. Counting Sort almacena estas frecuencias en un arreglo auxiliar y después reconstruye la secuencia en orden.
+
+Si los valores son enteros entre un mínimo y un máximo, se utiliza un desplazamiento para convertir cada valor en una posición del arreglo de conteo:
+
+\[
+\text{índice}=\text{valor}-\text{mínimo}
+\]
+
+De esta manera, también pueden representarse enteros negativos. La cantidad de posiciones necesarias para el conteo es:
+
+\[
+k=\text{máximo}-\text{mínimo}+1
+\]
+
+\subsection{Selección del mínimo}
+
+Selection Sort divide el arreglo en una parte inicial ya ordenada y otra pendiente. En cada pasada busca el elemento más pequeño de la parte pendiente y lo intercambia con el primer elemento de esa parte.
+
+Al finalizar una pasada, una posición adicional queda en su lugar definitivo. El procedimiento continúa hasta que todos los elementos están ordenados.
+
+\subsection{Tecnologías utilizadas}
+
+\begin{itemize}
+    \item \textbf{HTML y CSS:} estructuran la página, definen los estilos generales y cargan el código de la animación.
+    \item \textbf{TypeScript:} añade tipos a JavaScript. En este proyecto se utiliza para describir con claridad los datos de cada paso, como el arreglo y los índices comparados.
+    \item \textbf{JavaScript:} es el lenguaje que ejecuta el navegador. Los archivos \texttt{.js} son los que cargan las páginas.
+    \item \textbf{Canvas 2D:} permite dibujar tarjetas, barras, nodos y líneas, así como animar los movimientos entre un paso y el siguiente.
+\end{itemize}
+
+\section{Desarrollo}
+
+\subsection{Organización del proyecto}
+
+Cada algoritmo tiene su propia carpeta con tres archivos que comparten el mismo nombre base: una página \texttt{.html}, la lógica tipada en \texttt{.ts} y el código ejecutable en \texttt{.js}.
+
+\begin{table}[H]
+\centering
+\caption{Archivos de cada visualizador}
+\begin{tabular}{lll}
+\toprule
+\textbf{Algoritmo} & \textbf{Carpeta} & \textbf{Nombre base de los archivos} \\
+\midrule
+Heap Sort & \texttt{heap\_sort/} & \texttt{heap\_sort\_animado} \\
+Counting Sort & \texttt{counting\_sort/} & \texttt{counting\_sort\_animado} \\
+Selection Sort & \texttt{selection/} & \texttt{selection\_sort\_animado} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Este reporte utiliza la variante animada de Selection Sort de la carpeta \texttt{selection/}.
+
+\subsection{Heap Sort}
+
+\subsubsection{Algoritmo}
+
+El ordenamiento mediante montículos se realiza en dos etapas:
+
+\begin{enumerate}
+    \item Construir un montículo máximo a partir de la lista.
+    \item Intercambiar la raíz con el último elemento pendiente, reducir el tamaño del montículo y restaurar su propiedad. Repetir hasta terminar.
+\end{enumerate}
+
+Para restaurar la propiedad del montículo, la función \texttt{heapify} compara una raíz con sus hijos, identifica el mayor y, si es necesario, realiza un intercambio. Después repite el procedimiento desde la posición del hijo intercambiado.
+
+\begin{lstlisting}[caption={Restauración del montículo en Heap Sort}]
+let mayor = raiz;
+const izquierda = 2 * raiz + 1;
+const derecha = 2 * raiz + 2;
+
+if (izquierda < tamano) {
+    if (a[izquierda] > a[mayor]) mayor = izquierda;
+}
+if (derecha < tamano) {
+    if (a[derecha] > a[mayor]) mayor = derecha;
+}
+if (mayor !== raiz) {
+    [a[raiz], a[mayor]] = [a[mayor], a[raiz]];
+    heapify(tamano, mayor, ordenadas);
+}
+\end{lstlisting}
+
+El siguiente fragmento muestra la construcción del montículo y la colocación sucesiva del máximo al final. Para simplificar, se omiten las llamadas que registran los pasos de la animación.
+
+\begin{lstlisting}[caption={Construcción y extracción en Heap Sort}]
+for (let raiz = Math.floor(a.length / 2) - 1;
+     raiz >= 0; raiz--) {
+    heapify(a.length, raiz, 0);
+}
+
+for (let final = a.length - 1; final > 0; final--) {
+    [a[0], a[final]] = [a[final], a[0]];
+    heapify(final, 0, a.length - final);
+}
+\end{lstlisting}
+
+La construcción comienza en el último nodo que puede tener hijos y avanza hacia la raíz. En la segunda etapa, \texttt{final} determina el límite del montículo: los elementos que quedan a su derecha ya están ordenados.
+
+\subsubsection{Objetivo y diseño de la animación}
+
+El objetivo de esta animación es que se vea la relación entre el arreglo y el árbol que representa, y que se entienda cómo una raíz ``baja'' hasta recuperar la propiedad del montículo.
+
+Para lograrlo, la página dibuja el arreglo como una fila de tarjetas numeradas y, además, el árbol de nodos con sus líneas padre--hijo. Los colores indican la raíz o inicio de la operación, el padre y el hijo que se están comparando, el mayor actual y la zona que ya quedó ordenada. Cuando un paso es un intercambio, el movimiento de los valores se anima para que el cambio sea visible.
+
+\subsection{Counting Sort}
+
+\subsubsection{Algoritmo}
+
+Counting Sort no ordena comparando parejas de elementos. Primero encuentra el mínimo y el máximo, reserva un espacio para cada valor del rango y cuenta sus apariciones. Finalmente recorre las frecuencias desde el valor menor hasta el mayor y reconstruye el arreglo.
+
+\begin{lstlisting}[caption={Conteo de apariciones en Counting Sort}]
+const minimo = Math.min(...a);
+const maximo = Math.max(...a);
+const conteo = Array(maximo - minimo + 1).fill(0);
+
+a.forEach((numero, indice) => {
+    conteo[numero - minimo]++;
+    foto(4, indice, numero, numero - minimo, 0);
+});
+\end{lstlisting}
+
+El desplazamiento \texttt{numero - minimo} permite que el valor mínimo corresponda al índice cero. La función \texttt{foto} registra una copia del estado para mostrarlo posteriormente.
+
+\begin{lstlisting}[caption={Reconstrucción del arreglo ordenado}]
+let indiceResultado = 0;
+for (let i = 0; i < conteo.length; i++) {
+    const numero = i + minimo;
+    for (let j = 0; j < conteo[i]; j++) {
+        a[indiceResultado] = numero;
+        indiceResultado++;
+        foto(9, indiceResultado - 1, numero, i,
+             indiceResultado);
+    }
+}
+\end{lstlisting}
+
+Cada valor se escribe tantas veces como indique su frecuencia. Esta versión reconstruye directamente valores numéricos; no conserva información adicional asociada a elementos iguales.
+
+\subsubsection{Objetivo y diseño de la animación}
+
+El objetivo es mostrar que este método no compara elementos entre sí: cada número se cuenta y después se escribe en la posición que le corresponde.
+
+La vista tiene dos zonas. En la parte superior está el arreglo; en la inferior, una fila de tarjetas con un contador por cada valor del rango (por ejemplo, \texttt{x2} indica que ese número aparece dos veces). Durante la fase de conteo, una tarjeta naranja viaja del arreglo al contador de su valor y éste disminuye su cantidad restante en pantalla. En la fase de reconstrucción ocurre el recorrido inverso: la tarjeta sale del contador hacia su posición final y pasa a verde cuando queda ordenada.
+
+\subsection{Selection Sort}
+
+\subsubsection{Algoritmo}
+
+En Selection Sort se considera que la parte izquierda del arreglo ya está ordenada. En cada pasada se toma el primer índice pendiente como mínimo provisional y se revisan los elementos restantes. Si se encuentra un valor menor, se actualiza el índice del mínimo.
+
+\begin{lstlisting}[caption={Búsqueda del mínimo e intercambio en Selection Sort}]
+for (let inicio = 0; inicio < a.length - 1; inicio++) {
+    let minimo = inicio;
+
+    for (let comp = inicio + 1; comp < a.length; comp++) {
+        if (a[comp] < a[minimo]) {
+            minimo = comp;
+        }
+    }
+
+    [a[inicio], a[minimo]] = [a[minimo], a[inicio]];
+}
+\end{lstlisting}
+
+El fragmento omite las llamadas que guardan los estados. Al terminar el ciclo interno, el mínimo encontrado ocupa la primera posición pendiente. El intercambio se ejecuta incluso cuando el mínimo ya se encuentra en esa posición.
+
+\subsubsection{Objetivo y diseño de la animación}
+
+El objetivo es que se observe cómo el candidato a mínimo cambia durante la búsqueda y cómo la parte ordenada crece una posición por pasada.
+
+Cada barra o tarjeta se colorea según su papel: el inicio de la parte pendiente, el elemento que se compara, el mínimo actual y los elementos ya ordenados. Cuando el mínimo se intercambia con el primer elemento pendiente, la animación mueve ambos valores para que el intercambio se note. Como cada pasada realiza un solo intercambio, la animación permite ver con claridad que este método hace pocos movimientos aunque recorre muchas comparaciones.
+
+\subsection{Construcción de las animaciones}
+
+Los tres visualizadores comparten la misma arquitectura. Esto permitió reutilizar la estructura de la interfaz y concentrar las diferencias en el algoritmo y en la forma de dibujar cada estado. El flujo general es:
+
+\begin{enumerate}
+    \item Se genera una secuencia de números aleatorios, de 5 a 15 elementos.
+    \item La función \texttt{generarPasos} ejecuta el algoritmo y guarda un historial con el estado de cada paso.
+    \item La clase \texttt{Visualizador} crea la interfaz y muestra el paso seleccionado.
+    \item Canvas dibuja ese estado; además se actualizan el texto de estado, los contadores, la explicación, el código de referencia y la lista de instrucciones.
+    \item Los botones y las barras permiten avanzar, retroceder, reproducir o saltar a cualquier paso.
+\end{enumerate}
+
+\subsubsection{Página HTML}
+
+Cada algoritmo cuenta con su propia página HTML. El documento establece el idioma, la codificación, el título y los estilos generales; también carga el archivo JavaScript correspondiente y llama a la función \texttt{iniciar()}.
+
+\begin{lstlisting}[language=HTML, caption={Carga del visualizador de Heap Sort en HTML}]
+<body>
+  <script src="./heap_sort_animado.js?v=directo3"></script>
+  <script>iniciar();</script>
+</body>
+\end{lstlisting}
+
+Las páginas de Counting Sort y Selection Sort siguen la misma idea, pero cargan \texttt{counting\_sort\_animado.js} y \texttt{selection\_sort\_animado.js}, respectivamente. El parámetro después del signo de interrogación es un identificador de versión que ayuda a que el navegador cargue la versión más reciente del archivo.
+
+El HTML inicial no contiene todos los controles. El JavaScript crea dinámicamente la interfaz: el área \texttt{canvas}, los botones y los controles para cambiar la cantidad de números y seleccionar un paso. Los estilos CSS definen la presentación e incluyen ajustes para pantallas pequeñas.
+
+\subsubsection{Tipos de datos con TypeScript}
+
+TypeScript permite indicar qué información debe contener cada estado de la animación. Por ejemplo, Selection Sort define el tipo \texttt{Step} de la siguiente manera:
+
+\begin{lstlisting}[caption={Tipo de estado en Selection Sort}]
+type Step = {
+  arr: number[];
+  line: number;
+  inicio?: number;
+  minimo?: number;
+  comp?: number;
+  ordenadas: number;
+};
+\end{lstlisting}
+
+El campo \texttt{arr} guarda los números del paso, \texttt{line} identifica la línea de referencia que se resalta y \texttt{ordenadas} indica cuántas posiciones ya quedaron ordenadas. Los campos con signo de interrogación son opcionales: representan el inicio de la parte pendiente, el mínimo y el elemento comparado, cuando corresponden.
+
+En Heap Sort el estado incluye también el tamaño del montículo (\texttt{tamano}) y una lista con las posiciones comparadas (\texttt{comp}). En Counting Sort se guarda una copia del arreglo de frecuencias (\texttt{conteo}) y los valores mínimo y máximo. Así, cada visualizador dispone de la información que necesita para representar su algoritmo.
+
+\subsubsection{Registro de los pasos}
+
+En los tres algoritmos, \texttt{generarPasos} comienza con una copia de los datos y construye un historial. La función interna \texttt{foto} guarda una copia del arreglo y la información relevante antes o después de una operación importante.
+
+\begin{lstlisting}[caption={Registro de estados en Selection Sort}]
+function generarPasos(datos) {
+    const a = [...datos];
+    const pasos = [];
+    const foto = (line, inicio, minimo, comp,
+                  ordenadas = 0) =>
+        pasos.push({
+            arr: [...a], line, inicio, minimo, comp, ordenadas
+        });
+    for (let inicio = 0; inicio < a.length - 1; inicio++) {
+        let minimo = inicio;
+        foto(2, inicio, minimo, undefined, inicio);
+        for (let comp = inicio + 1; comp < a.length; comp++) {
+            foto(4, inicio, minimo, comp, inicio);
+            if (a[comp] < a[minimo]) {
+                minimo = comp;
+                foto(5, inicio, minimo, comp, inicio);
+            }
+        }
+        [a[inicio], a[minimo]] = [a[minimo], a[inicio]];
+        foto(6, inicio, minimo, undefined, inicio + 1);
+    }
+    return pasos;
+}
+\end{lstlisting}
+
+La expresión \texttt{[...a]} crea una copia del arreglo en ese momento; así, los cambios posteriores no modifican los estados ya guardados. Esta técnica es la que permite retroceder: como cada paso es una fotografía completa, basta con volver a dibujar una posición anterior del historial. El fragmento resume el código real; el original contiene más llamadas a \texttt{foto}.
+
+En Heap Sort se registran las comparaciones entre padre e hijo, los intercambios y cada llamada a \texttt{heapify}. En Counting Sort se registran la búsqueda del mínimo y del máximo, la creación del arreglo de conteo, cada elemento contado y cada valor reconstruido.
+
+\subsubsection{Interfaz y controles}
+
+La clase \texttt{Visualizador} crea la interfaz y conecta los controles con acciones. Por ejemplo:
+
+\begin{lstlisting}[caption={Controles del visualizador}]
+host.querySelector("#nuevo").onclick =
+    () => this.regenerar(this.cantidad);
+host.querySelector("#anterior").onclick =
+    () => this.irA(this.paso - 1);
+host.querySelector("#siguiente").onclick =
+    () => this.irA(this.paso + 1);
+this.playButton.onclick = () => this.togglePlay();
+\end{lstlisting}
+
+Al generar una secuencia nueva se calculan otra vez los pasos. Al avanzar o retroceder, el método \texttt{irA} limita el número de paso al rango válido, actualiza la barra de pasos y vuelve a dibujar. La reproducción automática utiliza un temporizador:
+
+\begin{lstlisting}[caption={Reproducción automática}]
+this.timer = window.setInterval(() => {
+    if (this.paso >= this.pasos.length)
+        this.detener();
+    else
+        this.irA(this.paso + 1);
+}, 500);
+\end{lstlisting}
+
+Cada 500 milisegundos se avanza un paso; al llegar al último se detiene la reproducción, y el botón puede pausarla en cualquier momento.
+
+\subsubsection{Dibujo en Canvas}
+
+Para dibujar, el visualizador obtiene el contexto 2D del elemento \texttt{canvas} y utiliza el estado del paso actual. Un método \texttt{colores} decide el color de cada elemento según su papel en ese paso. Por ejemplo, en Selection Sort:
+
+\begin{lstlisting}[caption={Asignación de colores en Selection Sort}]
+colores(p) {
+    return p.arr.map((_, i) => {
+        let color = ROJO;
+        if (i < p.ordenadas) color = VERDE;
+        if (i === p.comp) color = AZUL;
+        if (i === p.minimo) color = AMARILLO;
+        return color;
+    });
+}
+\end{lstlisting}
+
+El orden de las condiciones importa: una condición posterior puede sustituir el color de una anterior. Así, el mínimo actual se muestra en amarillo aunque también haya sido el elemento comparado.
+
+Para los intercambios se compara el paso anterior con el actual. Si exactamente dos posiciones cambiaron y sus valores se intercambiaron entre sí, se anima el movimiento con \texttt{requestAnimationFrame}, de modo que los valores se desplazan en lugar de cambiar de golpe.
+
+\subsubsection{Paneles de información}
+
+Además del dibujo, cada página muestra información que ayuda a interpretar el paso:
+
+\begin{itemize}
+    \item \textbf{Texto de estado y explicación:} describen en lenguaje sencillo qué ocurre en el paso actual.
+    \item \textbf{Contadores:} muestran comparaciones e intercambios acumulados hasta el paso actual. Se calculan filtrando los pasos ya recorridos, por ejemplo:
+\end{itemize}
+
+\begin{lstlisting}[caption={Cálculo de un contador en Heap Sort}]
+const vistos = this.pasos.slice(0, this.paso)
+    .filter(x => x.line === 4).length;
+\end{lstlisting}
+
+\begin{itemize}
+    \item \textbf{Código en Python:} muestra el algoritmo como pseudocódigo de referencia y resalta la línea asociada al paso. Es una ayuda visual; la animación se ejecuta con JavaScript.
+    \item \textbf{Instrucciones realizadas:} lista, en orden, las acciones ejecutadas hasta el paso actual.
+\end{itemize}
+
+\subsubsection{Elementos visuales por algoritmo}
+
+\begin{table}[H]
+\centering
+\caption{Significado de los colores en cada visualizador}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{8.2cm}}
+\toprule
+\textbf{Algoritmo} & \textbf{Color} & \textbf{Significado} \\
+\midrule
+Heap Sort & Rojo & Raíz o inicio de la operación \\
+ & Azul & Padre e hijo que se comparan \\
+ & Amarillo & Mayor actual \\
+ & Verde & Elementos ya ordenados \\
+\midrule
+Counting Sort & Azul & Arreglo original \\
+ & Naranja & Número que se mueve hacia el conteo o hacia su posición final \\
+ & Verde & Elementos ordenados y contadores con valores disponibles \\
+\midrule
+Selection Sort & Rojo & Elementos sin revisar \\
+ & Azul & Elemento que se compara \\
+ & Amarillo & Mínimo actual \\
+ & Verde & Elementos ya ordenados \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Análisis de complejidad}
+
+Sea \(n\) la cantidad de elementos y \(k\) el tamaño del rango de valores enteros. Las siguientes complejidades corresponden al algoritmo de ordenamiento, sin incluir las copias del historial que utiliza la animación.
+
+\subsection{Heap Sort}
+
+La construcción del montículo cuesta \(O(n)\). Después se realizan hasta \(n-1\) extracciones y cada restauración puede recorrer una altura de \(O(\log n)\). Por lo tanto, el tiempo total es:
+
+\[
+T(n)=O(n\log n)
+\]
+
+Este límite se mantiene en el mejor, promedio y peor caso. El ordenamiento modifica el arreglo en el mismo espacio; sin embargo, la versión utilizada llama recursivamente a \texttt{heapify}, por lo que puede ocupar \(O(\log n)\) de pila. Una versión iterativa podría usar \(O(1)\) de espacio auxiliar. Heap Sort no es estable en general.
+
+\subsection{Counting Sort}
+
+Se recorren los \(n\) elementos para encontrar el rango y contar sus frecuencias. Para reconstruir el resultado se recorren las \(k\) posiciones de conteo y se escriben los \(n\) valores:
+
+\[
+T(n,k)=O(n+k), \qquad S(n,k)=O(k)
+\]
+
+El espacio indicado corresponde al arreglo de frecuencias cuando se reconstruye sobre el arreglo de trabajo. Si el rango es mucho mayor que la cantidad de elementos, el método puede consumir memoria innecesaria. La variante que reconstruye solo números no conserva el orden de registros asociados a valores iguales; existen otras variantes de Counting Sort que sí pueden ser estables.
+
+\subsection{Selection Sort}
+
+En la primera pasada se realizan \(n-1\) comparaciones; en la siguiente, \(n-2\), y así sucesivamente:
+
+\[
+(n-1)+(n-2)+\cdots+1
+=\frac{n(n-1)}{2}
+\]
+
+Por ello, el tiempo es \(O(n^2)\) en el mejor, promedio y peor caso, incluso si la entrada ya está ordenada. Utiliza \(O(1)\) de espacio auxiliar para ordenar y realiza como máximo \(n-1\) intercambios entre posiciones. No es estable en general.
+
+\subsection{Comparación}
+
+\begin{table}[H]
+\centering
+\caption{Comparación de los algoritmos de ordenamiento}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Algoritmo} & \textbf{Mejor} & \textbf{Promedio} & \textbf{Peor} & \textbf{Espacio extra} \\
+\midrule
+Heap Sort & \(O(n\log n)\) & \(O(n\log n)\) & \(O(n\log n)\) & \(O(\log n)\)* \\
+Counting Sort & \(O(n+k)\) & \(O(n+k)\) & \(O(n+k)\) & \(O(k)\) \\
+Selection Sort & \(O(n^2)\) & \(O(n^2)\) & \(O(n^2)\) & \(O(1)\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent *La versión recursiva de Heap Sort usa pila para \texttt{heapify}. La tabla no incluye el arreglo de entrada ni las copias de estados que guardan los visualizadores; estas aumentan la memoria utilizada por el programa completo.
+
+\section{Pruebas y resultados}
+
+\subsection{Ejemplo de Heap Sort}
+
+Se parte del arreglo:
+
+\[
+[4,\,10,\,3,\,5,\,1]
+\]
+
+La siguiente tabla muestra el estado del arreglo después de cada intercambio registrado por \texttt{generarPasos}. Los primeros dos intercambios construyen el montículo; los demás colocan el máximo pendiente al final y restauran el montículo.
+
+\begin{table}[H]
+\centering
+\caption{Intercambios de Heap Sort para \([4,10,3,5,1]\)}
+\begin{tabular}{cl}
+\toprule
+\textbf{Intercambio} & \textbf{Estado del arreglo} \\
+\midrule
+1 (construcción) & \([10,4,3,5,1]\) \\
+2 (construcción) & \([10,5,3,4,1]\) \\
+3 (extracción) & \([1,5,3,4,10]\) \\
+4 (restauración) & \([5,1,3,4,10]\) \\
+5 (restauración) & \([5,4,3,1,10]\) \\
+6 (extracción) & \([1,4,3,5,10]\) \\
+7 (restauración) & \([4,1,3,5,10]\) \\
+8 (extracción) & \([3,1,4,5,10]\) \\
+9 (extracción) & \([1,3,4,5,10]\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El resultado final es:
+
+\[
+\boxed{[1,\,3,\,4,\,5,\,10]}
+\]
+
+\subsection{Ejemplo de Counting Sort}
+
+Se utiliza la lista:
+
+\[
+[4,\,2,\,2,\,1,\,3]
+\]
+
+El mínimo es 1, el máximo es 4 y el rango tiene cuatro posiciones. Las frecuencias son:
+
+\begin{table}[H]
+\centering
+\caption{Frecuencias de los valores}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Valor} & 1 & 2 & 3 & 4 \\
+\midrule
+\textbf{Frecuencia} & 1 & 2 & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Al escribir cada valor según su frecuencia se obtiene:
+
+\[
+\boxed{[1,\,2,\,2,\,3,\,4]}
+\]
+
+El número 2 aparece dos veces en el resultado, igual que en la entrada.
+
+\subsection{Ejemplo de Selection Sort}
+
+Se parte de:
+
+\[
+[5,\,3,\,4,\,1,\,2]
+\]
+
+En cada pasada se encuentra el mínimo de la parte pendiente y se intercambia con su primer elemento:
+
+\begin{table}[H]
+\centering
+\caption{Pasadas de Selection Sort para \([5,3,4,1,2]\)}
+\begin{tabular}{cccl}
+\toprule
+\textbf{Pasada} & \textbf{Mínimo} & \textbf{Intercambio} & \textbf{Estado del arreglo} \\
+\midrule
+1 & 1 & posiciones 1 y 4 & \([1,3,4,5,2]\) \\
+2 & 2 & posiciones 2 y 5 & \([1,2,4,5,3]\) \\
+3 & 3 & posiciones 3 y 5 & \([1,2,3,5,4]\) \\
+4 & 4 & posiciones 4 y 5 & \([1,2,3,4,5]\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Para cinco elementos se realizan \(4+3+2+1=10\) comparaciones, independientemente del orden inicial.
+
+\subsection{Pasos registrados por las animaciones}
+
+Para comprobar el funcionamiento de la lógica de las animaciones, se ejecutó la función \texttt{generarPasos} de cada algoritmo con tres secuencias de 5, 10 y 15 elementos, y se contaron los pasos registrados y las operaciones que muestran los contadores de la página. En los nueve casos, el último estado registrado fue el arreglo ordenado.
+
+\begin{table}[H]
+\centering
+\caption{Pasos y operaciones registradas por las animaciones}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Algoritmo} & \(\boldsymbol{n}\) & \textbf{Pasos} & \textbf{Comparaciones} & \textbf{Intercambios} \\
+\midrule
+Heap Sort & 5 & 35 & 12 & 9 \\
+Heap Sort & 10 & 112 & 41 & 30 \\
+Heap Sort & 15 & 187 & 74 & 49 \\
+\midrule
+Counting Sort & 5 & 14 & 0* & 0* \\
+Counting Sort & 10 & 24 & 0* & 0* \\
+Counting Sort & 15 & 34 & 0* & 0* \\
+\midrule
+Selection Sort & 5 & 38 & 10 & 4 \\
+Selection Sort & 10 & 128 & 45 & 9 \\
+Selection Sort & 15 & 271 & 105 & 14 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent *Counting Sort no compara ni intercambia elementos. La página usa esos contadores para mostrar los elementos contados (\(n\)) y los ya colocados.
+
+Los resultados se interpretan de la siguiente manera:
+
+\begin{itemize}
+    \item En Selection Sort las comparaciones coinciden con \(n(n-1)/2\): 10, 45 y 105 para \(n=5,10,15\). Los intercambios son \(n-1\).
+    \item Counting Sort registra \(2n+4\) pasos: la búsqueda del mínimo y del máximo, la creación del conteo, \(n\) conteos y \(n\) escrituras, más el estado final. El número de pasos crece linealmente con \(n\) en estas pruebas.
+    \item Heap Sort registra más pasos que Counting Sort porque cada llamada a \texttt{heapify} y cada comparación entre padre e hijo se guardan como un paso. Aun así, crece más despacio que Selection Sort al aumentar \(n\).
+\end{itemize}
+
+Estos valores miden la cantidad de estados que genera la animación, no el tiempo de ejecución real de los algoritmos. Sin embargo, permiten observar el efecto de su complejidad: el número de pasos de Selection Sort crece más rápido que el de Heap Sort y Counting Sort.
+
+\section{Conclusiones}
+
+Los tres algoritmos permiten ordenar una secuencia, pero utilizan estrategias distintas. Heap Sort aprovecha la estructura de un montículo para localizar y colocar repetidamente el máximo, con un límite temporal de \(O(n\log n)\).
+
+Counting Sort obtiene el resultado mediante frecuencias y puede ser eficiente cuando el rango de enteros es relativamente pequeño. Su limitación principal es que la memoria y el tiempo dependen del tamaño de ese rango.
+
+Selection Sort es sencillo de comprender y realiza pocos intercambios, aunque necesita \(O(n^2)\) comparaciones incluso cuando la lista ya está ordenada. Por ello, resulta más adecuado para listas pequeñas o con fines educativos que para grandes volúmenes de datos.
+
+En cuanto a las animaciones, separar el registro de pasos del dibujo resultó una decisión clave: \texttt{generarPasos} ejecuta el algoritmo una sola vez y guarda cada estado; la interfaz solo se encarga de mostrar el paso elegido. Esto permitió avanzar, retroceder y saltar a cualquier punto sin volver a ejecutar el algoritmo. TypeScript ayudó a describir con claridad los datos de cada estado, JavaScript conectó los controles con el historial, HTML cargó cada visualizador y Canvas permitió representar comparaciones, intercambios, árboles y contadores.
+
+Finalmente, las visualizaciones complementan el análisis teórico al mostrar los estados intermedios de cada método. La memoria necesaria para conservar esos estados es adicional a la memoria auxiliar que requiere cada algoritmo por sí solo.
+
+\end{document}
