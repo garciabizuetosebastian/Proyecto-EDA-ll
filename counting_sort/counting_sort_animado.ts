@@ -39,10 +39,25 @@ function generarPasos(datos: number[]): Paso[] {
     foto(2, maximo, undefined, undefined, 0);
     const conteo = Array(maximo - minimo + 1).fill(0);
     foto(3, undefined, undefined, undefined, 0);
+    
+    // Contar ocurrencias
     a.forEach((numero, indice) => {
         conteo[numero - minimo]++;
         foto(4, indice, numero, numero - minimo, 0);
     });
+    
+    // Reconstruir el arreglo ordenado con animaciones
+    let indiceResultado = 0;
+    for (let i = 0; i < conteo.length; i++) {
+        const numero = i + minimo;
+        for (let j = 0; j < conteo[i]; j++) {
+            a[indiceResultado] = numero;
+            indiceResultado++;
+            // Capturar pasos intermedios para visualizar el movimiento
+            foto(9, indiceResultado - 1, numero, i, indiceResultado);
+        }
+    }
+    
     foto(9, undefined, undefined, undefined, a.length);
     return pasos;
 }
@@ -65,6 +80,7 @@ class Visualizador {
     private instructionsPanel!: HTMLElement;
     private playButton!: HTMLButtonElement;
     private cantidadSlider!: HTMLInputElement;
+    private posicionesAnimadas: number[] = [];
 
     constructor(cantidad = 10, semilla?: number) {
         this.paso = 1;
@@ -114,9 +130,7 @@ class Visualizador {
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:13px">
               <label>Arreglo (máx. 15): <input id="arreglo-personalizado" type="text" value="${this.datos.join(", ")}" style="width:190px;padding:6px;border-radius:6px;border:1px solid #f0446155;background:#090507;color:#fff"></label>
               <button id="aplicar-arreglo" class="control">Aplicar arreglo</button>
-              <label>Número a buscar: <input id="buscar-numero" type="number" value="4" min="-99" max="99" style="width:70px;padding:6px;border:0;outline:none;box-shadow:none;background:#090507;color:#fff;appearance:textfield;-moz-appearance:textfield"></label>
             </div>
-            <div id="resultado-busqueda" style="margin-top:10px;padding:10px;border-radius:7px;background:#321620;color:#fff;font-size:15px;font-weight:700">El número 4 aparece 0 veces</div>
           </section>
           <aside class="selection-side" style="grid-column:2;grid-row:2;display:grid;grid-template-rows:130px 230px 130px;gap:8px;min-width:0;overflow:hidden">
             <section style="grid-row:1;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:10px 14px;overflow:hidden">
@@ -138,7 +152,7 @@ class Visualizador {
             </section>
           </aside>`;
         const style = document.createElement("style");
-        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}#buscar-numero::-webkit-inner-spin-button,#buscar-numero::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}#buscar-numero:focus{border:0;outline:none;box-shadow:none}`;
+        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}`;
         host.append(style);
         this.canvas = host.querySelector<HTMLCanvasElement>("#chart")!;
         this.ctx = this.canvas.getContext("2d")!;
@@ -152,9 +166,6 @@ class Visualizador {
         host.querySelector<HTMLButtonElement>("#anterior")!.onclick = () => this.irA(this.paso - 1);
         host.querySelector<HTMLButtonElement>("#siguiente")!.onclick = () => this.irA(this.paso + 1);
         host.querySelector<HTMLButtonElement>("#aplicar-arreglo")!.onclick = () => this.aplicarArreglo();
-        host.querySelector<HTMLInputElement>("#buscar-numero")!.oninput = () => {
-            this.dibujar();
-        };
         this.playButton.onclick = () => this.togglePlay();
         this.cantidadSlider = host.querySelector<HTMLInputElement>("#cantidad-slider")!;
         this.cantidadSlider.oninput = () => this.regenerar(Number(this.cantidadSlider.value));
@@ -199,19 +210,6 @@ class Visualizador {
         document.getElementById("cantidad-valor")!.textContent = String(this.cantidad);
         this.cantidadSlider.value = String(Math.max(5, this.cantidad));
     }
-    actualizarResultado(): void {
-        const objetivo = Number(document.querySelector<HTMLInputElement>("#buscar-numero")!.value);
-        const posiciones = this.pasos
-            .slice(0, this.paso)
-            .filter(p => p.line === 4 && p.minimo === objetivo && p.inicio !== undefined)
-            .map(p => p.inicio!);
-        const terminado = this.pasos[this.paso - 1].line === 9;
-        const listaPosiciones = posiciones.length > 0 ? posiciones.join(", ") : "ninguna";
-        const resumen = document.querySelector<HTMLElement>("#resultado-busqueda")!;
-        resumen.textContent = terminado
-            ? `El número ${objetivo} aparece ${posiciones.length} ${posiciones.length === 1 ? "vez" : "veces"}${posiciones.length > 0 ? ` en las posiciones ${listaPosiciones}` : ""}.`
-            : `Buscando el número ${objetivo}. Posiciones encontradas hasta ahora: ${listaPosiciones}.`;
-    }
     regenerar(n: number): void {
         this.detener();
         this.cantidad = n;
@@ -236,6 +234,7 @@ class Visualizador {
         this.paso = Math.max(1, Math.min(this.pasos.length, paso));
         this.pasoSlider.value = String(this.paso);
         document.getElementById("paso-num")!.textContent = String(this.paso);
+        this.posicionesAnimadas = [...this.pasos[this.paso - 1].arr];
         this.dibujar();
     }
     togglePlay(): void {
@@ -261,36 +260,31 @@ class Visualizador {
         this.playButton.textContent = "▶ Reproducir";
     }
     colores(p: Paso): string[] {
-        const objetivo = Number(document.querySelector<HTMLInputElement>("#buscar-numero")?.value);
         return p.arr.map((_, i) => {
-            let color = AZUL;
-            if (p.inicio !== undefined && i < p.inicio && p.arr[i] === objetivo)
-                color = VERDE;
-            if (p.arr[i] === objetivo && p.line === 9)
-                color = VERDE;
-            if (i === p.inicio)
-                color = NARANJA;
-            return color;
+            if (i === p.inicio && (p.line === 4 || p.line === 9))
+                return NARANJA;
+            if (p.line === 9)
+                return VERDE;
+            return AZUL;
         });
     }
     dibujar(): void {
         const p = this.pasos[this.paso - 1];
-        const estado = p.line === 9 ? "Búsqueda terminada; el arreglo mantiene su orden original" :
-            p.line === 4 ? `Leyendo la posición ${p.inicio}: número ${p.minimo}` :
+        const estado = p.line === 9 ? "Ordenamiento completado - Arreglo ordenado" :
+            p.line === 4 ? `Contando: posición ${p.inicio}, número ${p.minimo}` :
             p.line === 3 ? "Se crea el arreglo auxiliar de conteos" :
             p.line === 2 ? `Máximo encontrado: ${p.inicio}` :
             p.line === 1 ? `Mínimo encontrado: ${p.inicio}` :
             "Preparando Counting Sort";
         this.status.textContent = estado;
-        const vistos = this.pasos.slice(0, this.paso).filter(x => x.line === 4).length;
-        const intercambios = this.pasos.slice(0, this.paso).filter(x => x.line === 6).length;
-        document.getElementById("comparaciones")!.textContent = String(vistos);
-        document.getElementById("intercambios")!.textContent = String(intercambios);
-        this.explanation.textContent = "Recorre el arreglo sin cambiar su orden. Los números naranjas se están leyendo y las coincidencias con el número buscado se iluminan en verde.";
+        const conteos = this.pasos.slice(0, this.paso).filter(x => x.line === 4).length;
+        const ordenados = this.pasos[this.paso - 1].ordenadas || 0;
+        document.getElementById("comparaciones")!.textContent = String(conteos);
+        document.getElementById("intercambios")!.textContent = String(ordenados);
+        this.explanation.textContent = "Counting Sort organiza los números creando un arreglo de conteos. Primero busca el mínimo y máximo, luego cuenta las ocurrencias de cada número y finalmente reconstruye el arreglo ordenado.";
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
-        this.actualizarResultado();
     }
     dibujarInstrucciones(): void {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -318,6 +312,7 @@ class Visualizador {
         if (this.canvas.height !== height) this.canvas.height = height;
         ctx.fillStyle = BG;
         ctx.fillRect(0, 0, width, height);
+        
         const colors = this.colores(p);
         const cantidad = p.arr.length;
         const gap = cantidad === 15 ? 7 : 8;
@@ -328,29 +323,55 @@ class Visualizador {
         const totalWidth = cardWidth * cantidad + gap * (cantidad - 1);
         const startX = (width - totalWidth) / 2;
         const startY = (height - cardHeight) / 2 - 18;
-        p.arr.forEach((value, i) => {
-            const x = startX + i * (cardWidth + gap);
-            const y = startY;
-            ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetY = 3;
-            ctx.fillStyle = colors[i];
-            ctx.strokeStyle = "#111";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(x, y, cardWidth, cardHeight, 9);
-            ctx.fill();
-            ctx.stroke();
-            ctx.shadowColor = "transparent";
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "700 18px Roboto, Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
-            ctx.fillStyle = "#bbaeb3";
-            ctx.font = "12px Arial";
-            ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 22);
-        });
+        
+        // Animar cada tarjeta suavemente
+        let animationStartTime: number | null = null;
+        const animationDuration = 300;
+        
+        const animate = (currentTime: number) => {
+            if (animationStartTime === null) animationStartTime = currentTime;
+            const elapsed = currentTime - animationStartTime;
+            const progress = Math.min(elapsed / animationDuration, 1);
+            
+            ctx.fillStyle = BG;
+            ctx.fillRect(0, 0, width, height);
+            
+            p.arr.forEach((value, i) => {
+                const targetX = startX + i * (cardWidth + gap);
+                const prevPos = this.posicionesAnimadas[i] ?? value;
+                const prevIndex = p.arr.indexOf(prevPos);
+                const prevX = prevIndex >= 0 ? startX + prevIndex * (cardWidth + gap) : targetX;
+                
+                const x = prevX + (targetX - prevX) * progress;
+                const y = startY;
+                
+                ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 3;
+                ctx.fillStyle = colors[i];
+                ctx.strokeStyle = "#111";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(x, y, cardWidth, cardHeight, 9);
+                ctx.fill();
+                ctx.stroke();
+                ctx.shadowColor = "transparent";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "700 18px Roboto, Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
+                ctx.fillStyle = "#bbaeb3";
+                ctx.font = "12px Arial";
+                ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 22);
+            });
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        requestAnimationFrame(animate);
     }
     dibujarCodigo(lineaActiva: number): void {
         this.codePanel.replaceChildren();
