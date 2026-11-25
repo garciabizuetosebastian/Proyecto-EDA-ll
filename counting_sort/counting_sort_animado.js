@@ -36,17 +36,35 @@ const CODE = [
 function generarPasos(datos) {
     const a = [...datos];
     const pasos = [];
-    const foto = (line, inicio, minimo, comp, ordenadas = 0) => pasos.push({ arr: [...a], line, inicio, minimo, comp, ordenadas });
+    
     const minimo = Math.min(...a);
-    foto(1, minimo, undefined, undefined, 0);
     const maximo = Math.max(...a);
-    foto(2, maximo, undefined, undefined, 0);
     const conteo = Array(maximo - minimo + 1).fill(0);
+    
+    const foto = (line, inicio, minVal, comp, ordenadas = 0) => 
+        pasos.push({ arr: [...a], line, inicio, minimo: minVal, comp, ordenadas, conteo: [...conteo], minVal: minimo, maxVal: maximo });
+    
+    foto(1, minimo, undefined, undefined, 0);
+    foto(2, maximo, undefined, undefined, 0);
     foto(3, undefined, undefined, undefined, 0);
+    
+    // Contar ocurrencias
     a.forEach((numero, indice) => {
         conteo[numero - minimo]++;
         foto(4, indice, numero, numero - minimo, 0);
     });
+    
+    // Reconstruir el arreglo ordenado con animaciones
+    let indiceResultado = 0;
+    for (let i = 0; i < conteo.length; i++) {
+        const numero = i + minimo;
+        for (let j = 0; j < conteo[i]; j++) {
+            a[indiceResultado] = numero;
+            indiceResultado++;
+            foto(9, indiceResultado - 1, numero, i, indiceResultado);
+        }
+    }
+    
     foto(9, undefined, undefined, undefined, a.length);
     return pasos;
 }
@@ -60,6 +78,7 @@ class Visualizador {
         this.datos = this.nuevosDatos(this.cantidad);
         this.pasos = generarPasos(this.datos);
         this.host = this.crearInterfaz();
+        this.animationFrame = undefined;
         window.SortLabTheme.crearControlVelocidad(this.host.querySelector("#play").parentElement);
         window.addEventListener("sortlab-speed-change", () => {
             if (this.timer !== undefined) {
@@ -70,8 +89,8 @@ class Visualizador {
     }
     crearInterfaz() {
         const host = document.createElement("main");
-        host.className = "selection-layout insertion-layout";
-        host.style.cssText = `width:min(980px,calc(100vw - 40px));height:min(680px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto minmax(0,1fr);gap:8px 14px;overflow:hidden;`;
+        host.className = "selection-layout";
+        host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto auto;align-content:start;gap:8px 14px;overflow:hidden;`;
         host.innerHTML = `
           <div style="grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:24px">
             <h1 style="margin:0;color:#111;font-size:22px;font-weight:700">Aprende Counting Sort paso a paso</h1>
@@ -88,14 +107,13 @@ class Visualizador {
               </div>
             </div>
           </div>
-          <section style="grid-column:1;grid-row:2;min-width:0">
-            <div style="background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:14px 16px 9px;box-shadow:inset 0 0 0 1px #ffffff03">
+          <section style="grid-column:1;grid-row:2;min-width:0;min-height:0;display:grid;grid-template-rows:auto auto;align-content:start;gap:8px;overflow:hidden">
+            <div style="background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:14px 16px 9px;box-shadow:inset 0 0 0 1px #ffffff03;min-height:0;display:flex;flex-direction:column;overflow:hidden">
               <div id="status" style="min-height:24px;color:#fff;font-size:15px;font-weight:500;margin-bottom:8px">Preparando la simulacion</div>
               <canvas id="chart" style="width:100%;height:210px;display:block"></canvas>
               <div style="display:flex;justify-content:center;gap:22px;padding:6px 0 3px;font-size:13px;color:#fff;font-family:'Roboto',Arial,sans-serif">
-                <span><b style="color:${ROJO}">■</b> sin revisar</span>
-                <span><b style="color:${NARANJA}">■</b> leyendo</span>
-                <span><b style="color:${VERDE}">■</b> coincidencia encontrada</span>
+                <span><b style="color:${AZUL}">■</b> Arreglo Original</span>
+                <span><b style="color:${VERDE}">■</b> Arreglo Ordenado</span>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px">
@@ -104,12 +122,6 @@ class Visualizador {
               <button id="play" class="control primary">▶ Reproducir</button>
               <button id="siguiente" class="control">Siguiente</button>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:13px">
-              <label>Arreglo (máx. 15): <input id="arreglo-personalizado" type="text" value="${this.datos.join(", ")}" style="width:190px;padding:6px;border-radius:6px;border:1px solid #f0446155;background:#090507;color:#fff"></label>
-              <button id="aplicar-arreglo" class="control">Aplicar arreglo</button>
-              <label>Número a buscar: <input id="buscar-numero" type="number" value="4" min="-99" max="99" style="width:70px;padding:6px;border:0;outline:none;box-shadow:none;background:#090507;color:#fff;appearance:textfield;-moz-appearance:textfield"></label>
-            </div>
-            <div id="resultado-busqueda" style="margin-top:10px;padding:10px;border-radius:7px;background:#bdbdbd;color:#111;font-size:15px;font-weight:700">El número 4 aparece 0 veces</div>
           </section>
           <aside class="selection-side" style="grid-column:2;grid-row:2;display:grid;grid-template-rows:150px 230px 130px;gap:8px;min-width:0;overflow:hidden">
             <section style="grid-row:1;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:10px 14px;overflow:hidden">
@@ -131,7 +143,7 @@ class Visualizador {
             </section>
           </aside>`;
         const style = document.createElement("style");
-        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}input[type="range"]{appearance:none;-webkit-appearance:none;height:6px;background:#5c5c5c;border-radius:4px}input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}input[type="range"]::-moz-range-thumb{width:10px;height:10px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}#buscar-numero::-webkit-inner-spin-button,#buscar-numero::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}#buscar-numero:focus{border:0;outline:none;box-shadow:none}`;
+        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}input[type="range"]{appearance:none;-webkit-appearance:none;height:6px;background:#5c5c5c;border-radius:4px}input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}input[type="range"]::-moz-range-thumb{width:10px;height:10px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}.numero-unico{background:#ff3158;color:#fff;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:16px;min-height:80px;transition:all 0.4s ease;border:2px solid transparent;text-align:center;box-shadow:0 2px 8px rgba(255,49,88,0.25)}.numero-unico .valor{font-size:24px;margin-bottom:4px}.numero-unico .conteo{font-size:12px;color:#ffd166;opacity:0.95;font-weight:600}.numero-unico.completado{background:#63d6a5;border-color:#fff;box-shadow:0 2px 8px rgba(99,214,165,0.25)}.numero-unico:hover{transform:scale(1.08)}@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}`;
         host.append(style);
         this.canvas = host.querySelector("#chart");
         this.ctx = this.canvas.getContext("2d");
@@ -144,10 +156,6 @@ class Visualizador {
         host.querySelector("#nuevo").onclick = () => this.regenerar(this.cantidad);
         host.querySelector("#anterior").onclick = () => this.irA(this.paso - 1);
         host.querySelector("#siguiente").onclick = () => this.irA(this.paso + 1);
-        host.querySelector("#aplicar-arreglo").onclick = () => this.aplicarArreglo();
-        host.querySelector("#buscar-numero").oninput = () => {
-            this.dibujar();
-        };
         this.playButton.onclick = () => this.togglePlay();
         this.cantidadSlider = host.querySelector("#cantidad-slider");
         this.cantidadSlider.oninput = (event) => {
@@ -185,33 +193,6 @@ class Visualizador {
         datos[Math.max(1, Math.floor(n / 2))] = 4;
         return datos;
     }
-    aplicarArreglo() {
-        const entrada = document.querySelector("#arreglo-personalizado").value;
-        const datos = entrada.split(",").map(v => Number(v.trim())).filter(v => Number.isFinite(v));
-        if (!datos.length)
-            return;
-        this.cantidad = Math.max(1, Math.min(15, datos.length));
-        this.datos = datos.slice(0, this.cantidad);
-        this.pasos = generarPasos(this.datos);
-        this.paso = 1;
-        this.actualizarSliderPasos();
-        this.dibujar();
-        document.getElementById("cantidad-valor").textContent = String(this.cantidad);
-        document.querySelector("#cantidad-slider").value = String(Math.max(5, this.cantidad));
-    }
-    actualizarResultado() {
-        const objetivo = Number(document.querySelector("#buscar-numero").value);
-        const posiciones = this.pasos
-            .slice(0, this.paso)
-            .filter(p => p.line === 4 && p.minimo === objetivo && p.inicio !== undefined)
-            .map(p => p.inicio);
-        const terminado = this.pasos[this.paso - 1].line === 9;
-        const listaPosiciones = posiciones.length > 0 ? posiciones.join(", ") : "ninguna";
-        const resumen = document.querySelector("#resultado-busqueda");
-        resumen.textContent = terminado
-            ? `El número ${objetivo} aparece ${posiciones.length} ${posiciones.length === 1 ? "vez" : "veces"}${posiciones.length > 0 ? ` en las posiciones ${listaPosiciones}` : ""}.`
-            : `Buscando el número ${objetivo}. Posiciones encontradas hasta ahora: ${listaPosiciones}.`;
-    }
     regenerar(n) {
         this.detener();
         this.cantidad = n;
@@ -219,7 +200,6 @@ class Visualizador {
         this.pasos = generarPasos(this.datos);
         this.paso = 1;
         document.getElementById("cantidad-valor").textContent = String(n);
-        document.querySelector("#arreglo-personalizado").value = this.datos.join(", ");
         this.actualizarSliderPasos();
         this.dibujar();
     }
@@ -259,7 +239,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-        }, Math.round(180 / window.SortLabTheme.getPlaybackSpeed()));
+        }, Math.round(900 / window.SortLabTheme.getPlaybackSpeed()));
     }
     detener() {
         if (this.timer !== undefined)
@@ -269,36 +249,31 @@ class Visualizador {
         this.playButton.textContent = "▶ Reproducir";
     }
     colores(p) {
-        const objetivo = Number(document.querySelector("#buscar-numero")?.value);
         return p.arr.map((_, i) => {
-            let color = ROJO;
-            if (p.inicio !== undefined && i < p.inicio && p.arr[i] === objetivo)
-                color = VERDE;
-            if (p.arr[i] === objetivo && p.line === 9)
-                color = VERDE;
-            if (i === p.inicio)
-                color = NARANJA;
-            return color;
+            if (i === p.inicio && (p.line === 4 || p.line === 9))
+                return NARANJA;
+            if (p.line === 9)
+                return VERDE;
+            return AZUL;
         });
     }
     dibujar() {
         const p = this.pasos[this.paso - 1];
-        const estado = p.line === 9 ? "Búsqueda terminada; el arreglo mantiene su orden original" :
-            p.line === 4 ? `Leyendo la posición ${p.inicio}: número ${p.minimo}` :
+        const estado = p.line === 9 ? "Ordenamiento completado - Arreglo ordenado" :
+            p.line === 4 ? `Contando: posición ${p.inicio}, número ${p.minimo}` :
             p.line === 3 ? "Se crea el arreglo auxiliar de conteos" :
             p.line === 2 ? `Máximo encontrado: ${p.inicio}` :
             p.line === 1 ? `Mínimo encontrado: ${p.inicio}` :
             "Preparando Counting Sort";
         this.status.textContent = estado;
-        const vistos = this.pasos.slice(0, this.paso).filter(x => x.line === 4).length;
-        const intercambios = this.pasos.slice(0, this.paso).filter(x => x.line === 6).length;
-        document.getElementById("comparaciones").textContent = String(vistos);
-        document.getElementById("intercambios").textContent = String(intercambios);
-        this.explanation.textContent = "Recorre el arreglo sin cambiar su orden. Los números naranjas se están leyendo y las coincidencias con el número buscado se iluminan en verde.";
+        const conteos = this.pasos.slice(0, this.paso).filter(x => x.line === 4).length;
+        const ordenados = this.pasos[this.paso - 1].ordenadas || 0;
+        document.getElementById("comparaciones").textContent = String(conteos);
+        document.getElementById("intercambios").textContent = String(ordenados);
+        this.explanation.textContent = "Counting Sort organiza los números creando un arreglo de conteos. Primero busca el mínimo y máximo, luego cuenta las ocurrencias de cada número y finalmente reconstruye el arreglo ordenado.";
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
-        this.actualizarResultado();
     }
     dibujarInstrucciones() {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -324,43 +299,111 @@ class Visualizador {
         const height = 210;
         if (this.canvas.width !== width) this.canvas.width = width;
         if (this.canvas.height !== height) this.canvas.height = height;
-        ctx.fillStyle = PANEL;
-        ctx.fillRect(0, 0, width, height);
-        const colors = this.colores(p);
-        const cantidad = p.arr.length;
-        const gap = cantidad === 15 ? 7 : 8;
-        const maxTotalSize = width - 80;
-        const cardSize = Math.min(34, Math.floor((maxTotalSize - gap * (cantidad - 1)) / cantidad));
-        const cardWidth = cardSize;
-        const cardHeight = cardSize;
-        const totalWidth = cardWidth * cantidad + gap * (cantidad - 1);
-        const startX = (width - totalWidth) / 2;
-        const startY = (height - cardHeight) / 2 - 18;
-        const objetivo = Number(document.querySelector("#buscar-numero")?.value);
-        p.arr.forEach((value, i) => {
-            const x = startX + i * (cardWidth + gap);
-            const seleccionado = i === p.inicio || (p.line === 9 && p.arr[i] === objetivo);
-            const y = startY - (seleccionado ? 14 : 0);
-            ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
-            ctx.shadowBlur = 8;
+        if (this.animationFrame !== undefined)
+            cancelAnimationFrame(this.animationFrame);
+
+        const count = p.conteo || [];
+        const minValue = p.minVal ?? 0;
+        const range = count.length;
+        const arrayGap = p.arr.length === 15 ? 7 : 8;
+        const arrayCard = Math.min(34, Math.floor((width - 80 - arrayGap * (p.arr.length - 1)) / p.arr.length));
+        const arrayWidth = arrayCard * p.arr.length + arrayGap * (p.arr.length - 1);
+        const arrayStartX = (width - arrayWidth) / 2;
+        const arrayY = 24;
+        const countGap = 5;
+        const countCardWidth = Math.min(48, Math.floor((width - 48 - countGap * (range - 1)) / range));
+        const countCardHeight = 42;
+        const countWidth = countCardWidth * range + countGap * (range - 1);
+        const countStartX = (width - countWidth) / 2;
+        const countY = height - countCardHeight - 8;
+        const countTitleY = countY - 15;
+        const duration = 760 / window.SortLabTheme.getPlaybackSpeed();
+        let startTime;
+
+        const drawCard = (x, y, w, h, value, color, size) => {
+            ctx.shadowColor = "rgba(0,0,0,.35)";
+            ctx.shadowBlur = 7;
             ctx.shadowOffsetY = 3;
-            ctx.fillStyle = colors[i];
-            ctx.strokeStyle = "#111";
+            ctx.fillStyle = color;
+            ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(x, y, cardWidth, cardHeight, 9);
+            ctx.roundRect(x, y, w, h, 8);
             ctx.fill();
             ctx.stroke();
             ctx.shadowColor = "transparent";
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "700 18px Roboto, Arial";
+            ctx.fillStyle = "#fff";
+            ctx.font = `700 ${size}px Roboto, Arial`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
-            ctx.font = "12px Arial";
-            ctx.fillStyle = "#bbaeb3";
-            ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 22);
-        });
+            ctx.fillText(String(value), x + w / 2, y + h / 2);
+        };
+
+        const render = (time) => {
+            if (startTime === undefined) startTime = time;
+            const progress = Math.min((time - startTime) / duration, 1);
+            const eased = progress * progress * (3 - 2 * progress);
+            ctx.fillStyle = PANEL;
+            ctx.fillRect(0, 0, width, height);
+
+            const outputMove = p.line === 9 && p.inicio !== undefined;
+            const activeIndex = outputMove ? p.inicio : -1;
+            p.arr.forEach((value, i) => {
+                if (outputMove && i === activeIndex && progress < 1) return;
+                let color = AZUL;
+                if (p.line === 4 && i === p.inicio) color = NARANJA;
+                if (p.line === 9 && (p.inicio === undefined || i < (p.ordenadas - 1))) color = VERDE;
+                drawCard(arrayStartX + i * (arrayCard + arrayGap), arrayY, arrayCard, arrayCard, value, color, 18);
+                ctx.fillStyle = "#bbaeb3";
+                ctx.font = "12px Arial";
+                ctx.fillText(String(i), arrayStartX + i * (arrayCard + arrayGap) + arrayCard / 2, arrayY + arrayCard + 15);
+            });
+
+            ctx.fillStyle = "#d7cdd1";
+            ctx.font = "12px Roboto, Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("Conteo por número", 12, countTitleY);
+            for (let i = 0; i < range; i++) {
+                const value = minValue + i;
+                const x = countStartX + i * (countCardWidth + countGap);
+                const countValue = count[i] || 0;
+                let emitted = 0;
+                if (p.line === 9) {
+                    const completed = Math.max(0, p.ordenadas - (progress < 1 && p.inicio !== undefined ? 1 : 0));
+                    emitted = p.arr.slice(0, completed).filter((number) => number === value).length;
+                }
+                const visibleCount = Math.max(0, countValue - emitted -
+                    (p.line === 4 && p.minimo === value && progress < 1 ? 1 : 0));
+                drawCard(x, countY, countCardWidth, countCardHeight, value, visibleCount > 0 ? VERDE : "#333333", Math.min(16, countCardWidth / 2));
+                ctx.fillStyle = AMARILLO;
+                ctx.font = "700 11px Roboto, Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(`×${visibleCount}`, x + countCardWidth / 2, countY + countCardHeight - 7);
+            }
+
+            const isCountingMove = p.line === 4 && p.inicio !== undefined && range > 0;
+            if (isCountingMove || outputMove) {
+                const value = p.minimo;
+                const valueIndex = value - minValue;
+                const sourceX = isCountingMove
+                    ? arrayStartX + p.inicio * (arrayCard + arrayGap)
+                    : countStartX + valueIndex * (countCardWidth + countGap) + (countCardWidth - arrayCard) / 2;
+                const sourceY = isCountingMove ? arrayY : countY;
+                const targetX = isCountingMove
+                    ? countStartX + valueIndex * (countCardWidth + countGap) + (countCardWidth - arrayCard) / 2
+                    : arrayStartX + p.inicio * (arrayCard + arrayGap);
+                const targetY = isCountingMove ? countY : arrayY;
+                const x = sourceX + (targetX - sourceX) * eased;
+                const y = sourceY + (targetY - sourceY) * eased;
+                drawCard(x, y, arrayCard, arrayCard, value, NARANJA, 18);
+            }
+
+            if (progress < 1)
+                this.animationFrame = requestAnimationFrame(render);
+            else
+                this.animationFrame = undefined;
+        };
+        this.animationFrame = requestAnimationFrame(render);
     }
     dibujarCodigo(lineaActiva) {
         this.codePanel.replaceChildren();
