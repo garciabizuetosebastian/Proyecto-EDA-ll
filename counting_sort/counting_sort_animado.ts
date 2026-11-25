@@ -12,6 +12,9 @@ type Paso = {
     minimo?: number;
     comp?: number;
     ordenadas: number;
+    conteo?: number[];
+    minVal?: number;
+    maxVal?: number;
 };
 
 const CODE = [
@@ -30,14 +33,17 @@ const CODE = [
 function generarPasos(datos: number[]): Paso[] {
     const a = [...datos];
     const pasos: Paso[] = [];
-    const foto = (line: number, inicio?: number, minimo?: number, comp?: number, ordenadas = 0): void => {
-        pasos.push({ arr: [...a], line, inicio, minimo, comp, ordenadas });
-    };
+    
     const minimo = Math.min(...a);
-    foto(1, minimo, undefined, undefined, 0);
     const maximo = Math.max(...a);
-    foto(2, maximo, undefined, undefined, 0);
     const conteo = Array(maximo - minimo + 1).fill(0);
+    
+    const foto = (line: number, inicio?: number, minVal?: number, comp?: number, ordenadas = 0): void => {
+        pasos.push({ arr: [...a], line, inicio, minimo: minVal, comp, ordenadas, conteo: [...conteo], minVal: minimo, maxVal: maximo });
+    };
+    
+    foto(1, minimo, undefined, undefined, 0);
+    foto(2, maximo, undefined, undefined, 0);
     foto(3, undefined, undefined, undefined, 0);
     
     // Contar ocurrencias
@@ -53,7 +59,6 @@ function generarPasos(datos: number[]): Paso[] {
         for (let j = 0; j < conteo[i]; j++) {
             a[indiceResultado] = numero;
             indiceResultado++;
-            // Capturar pasos intermedios para visualizar el movimiento
             foto(9, indiceResultado - 1, numero, i, indiceResultado);
         }
     }
@@ -80,8 +85,7 @@ class Visualizador {
     private instructionsPanel!: HTMLElement;
     private playButton!: HTMLButtonElement;
     private cantidadSlider!: HTMLInputElement;
-    private posicionesAnimadas: number[] = [];
-    private reelsContainer!: HTMLElement;
+    private animationFrame?: number;
 
     constructor(cantidad = 10, semilla?: number) {
         this.paso = 1;
@@ -95,7 +99,7 @@ class Visualizador {
     crearInterfaz() {
         const host = document.createElement("main");
         host.className = "selection-layout";
-        host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto minmax(0,1fr) auto;gap:8px 14px;overflow:hidden;`;
+        host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto auto;align-content:start;gap:8px 14px;overflow:hidden;`;
         host.innerHTML = `
           <div style="grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:24px">
             <h1 style="margin:0;color:#111;font-size:22px;font-weight:700">Aprende Counting Sort paso a paso</h1>
@@ -103,23 +107,22 @@ class Visualizador {
               <div style="display:grid;grid-template-columns:125px 20px 145px;align-items:center">
                 <strong style="color:#111">Cantidad de números:</strong>
                 <span id="cantidad-valor" style="color:#111;font-weight:700;text-align:right">${this.cantidad}</span>
-                <input id="cantidad-slider" type="range" min="5" max="15" value="${this.cantidad}" style="width:145px;accent-color:#ff3158">
+                <input id="cantidad-slider" type="range" min="5" max="15" value="${this.cantidad}" style="width:145px">
               </div>
               <div style="display:grid;grid-template-columns:125px 20px 145px;align-items:center">
                 <strong style="color:#111">Seleccionar paso:</strong>
                 <span style="color:#111;font-weight:700;text-align:right"><strong id="paso-num">1</strong></span>
-                <input id="paso-slider" type="range" min="1" value="1" style="width:145px;accent-color:#ff3158">
+                <input id="paso-slider" type="range" min="1" value="1" style="width:145px">
               </div>
             </div>
           </div>
-          <section style="grid-column:1;grid-row:2;min-width:0">
-            <div style="background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:14px 16px 9px;box-shadow:inset 0 0 0 1px #ffffff03">
-              <div id="status" style="min-height:24px;color:#ffc9d2;font-size:15px;font-weight:500;margin-bottom:8px">Preparando la simulacion</div>
+          <section style="grid-column:1;grid-row:2;min-width:0;min-height:0;display:grid;grid-template-rows:auto auto;align-content:start;gap:8px;overflow:hidden">
+            <div style="background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:14px 16px 9px;box-shadow:inset 0 0 0 1px #ffffff03;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+              <div id="status" style="min-height:24px;color:#fff;font-size:15px;font-weight:500;margin-bottom:8px">Preparando la simulacion</div>
               <canvas id="chart" style="width:100%;height:210px;display:block"></canvas>
-              <div style="display:flex;justify-content:center;gap:22px;padding:6px 0 3px;font-size:13px;color:#111;font-family:'Roboto',Arial,sans-serif">
-                <span><b style="color:${AZUL}">■</b> sin revisar</span>
-                <span><b style="color:${NARANJA}">■</b> leyendo</span>
-                <span><b style="color:${VERDE}">■</b> coincidencia encontrada</span>
+              <div style="display:flex;justify-content:center;gap:22px;padding:6px 0 3px;font-size:13px;color:#fff;font-family:'Roboto',Arial,sans-serif">
+                <span><b style="color:${AZUL}">■</b> Arreglo Original</span>
+                <span><b style="color:${VERDE}">■</b> Arreglo Ordenado</span>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px">
@@ -128,14 +131,10 @@ class Visualizador {
               <button id="play" class="control primary">▶ Reproducir</button>
               <button id="siguiente" class="control">Siguiente</button>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:13px">
-              <label>Arreglo (máx. 15): <input id="arreglo-personalizado" type="text" value="${this.datos.join(", ")}" style="width:190px;padding:6px;border-radius:6px;border:1px solid #f0446155;background:#090507;color:#fff"></label>
-              <button id="aplicar-arreglo" class="control">Aplicar arreglo</button>
-            </div>
           </section>
-          <aside class="selection-side" style="grid-column:2;grid-row:2;display:grid;grid-template-rows:130px 230px 130px;gap:8px;min-width:0;overflow:hidden">
+          <aside class="selection-side" style="grid-column:2;grid-row:2;display:grid;grid-template-rows:150px 230px 130px;gap:8px;min-width:0;overflow:hidden">
             <section style="grid-row:1;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:10px 14px;overflow:hidden">
-              <h2 style="font-size:16px;margin:0 0 7px">¿Qué hace el algoritmo?</h2>
+              <h2 style="font-size:16px;margin:0 0 7px;color:#fff">¿Qué hace el algoritmo?</h2>
               <p id="explanation" style="color:#d7cdd1;font-size:12px;line-height:1.35;margin:0"></p>
               <div style="height:1px;background:#ffffff12;margin:8px 0"></div>
               <div style="display:flex;justify-content:space-between;color:#d7cdd1;font-size:12px">
@@ -144,27 +143,16 @@ class Visualizador {
               </div>
             </section>
             <section style="grid-row:2;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:10px 14px;overflow:hidden">
-              <h2 style="font-size:15px;margin:0 0 8px">Código en Python</h2>
+              <h2 style="font-size:15px;margin:0 0 8px;color:#fff">Código en Python</h2>
               <div id="code" style="height:180px;background:#050505;border-radius:8px;padding:4px 6px;font-family:'Roboto Mono',monospace;font-size:8px;overflow:auto;scrollbar-gutter:stable"></div>
             </section>
             <section style="grid-row:3;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:10px 14px;overflow:hidden">
-              <h2 style="font-size:15px;margin:0 0 7px">Instrucciones realizadas</h2>
+              <h2 style="font-size:15px;margin:0 0 7px;color:#fff">Instrucciones realizadas</h2>
               <div id="instructions" style="height:90px;overflow-y:auto;color:#d7cdd1;font-size:11px;line-height:1.35"></div>
             </section>
-          </aside>
-          <section style="grid-column:1/3;grid-row:3;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:12px 16px;overflow:hidden">
-            <h2 style="font-size:15px;margin:0 0 10px;color:#fff">Números Ordenados - Estilo Reels</h2>
-            <div id="reels-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(45px,1fr));gap:8px;max-height:120px;overflow-y:auto;padding:8px 0">
-              <!-- Se llena dinámicamente con JavaScript -->
-            </div>
-            <div style="margin-top:10px;padding:8px;background:#050505;border-radius:6px;color:#d7cdd1;font-size:12px">
-              <span>Total de números: <b id="total-numeros" style="color:#ff91a2">0</b></span>
-              <span style="margin-left:20px">Mínimo: <b id="min-valor" style="color:#4da3ff">-</b></span>
-              <span style="margin-left:20px">Máximo: <b id="max-valor" style="color:#ff8f42">-</b></span>
-            </div>
-          </section>`;
+          </aside>`;
         const style = document.createElement("style");
-        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}.numero-reel{background:#ff3158;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;min-height:45px;transition:all 0.3s ease;border:2px solid transparent}.numero-reel.completado{background:#63d6a5;border-color:#fff}.numero-reel:hover{transform:scale(1.1)}`;
+        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}input[type="range"]{appearance:none;-webkit-appearance:none;height:6px;background:#5c5c5c;border-radius:4px}input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}input[type="range"]::-moz-range-thumb{width:10px;height:10px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}.numero-unico{background:#ff3158;color:#fff;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:16px;min-height:80px;transition:all 0.4s ease;border:2px solid transparent;text-align:center;box-shadow:0 2px 8px rgba(255,49,88,0.25)}.numero-unico .valor{font-size:24px;margin-bottom:4px}.numero-unico .conteo{font-size:12px;color:#ffd166;opacity:0.95;font-weight:600}.numero-unico.completado{background:#63d6a5;border-color:#fff;box-shadow:0 2px 8px rgba(99,214,165,0.25)}.numero-unico:hover{transform:scale(1.08)}@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}`;
         host.append(style);
         this.canvas = host.querySelector<HTMLCanvasElement>("#chart")!;
         this.ctx = this.canvas.getContext("2d")!;
@@ -174,11 +162,9 @@ class Visualizador {
         this.pasoSlider = host.querySelector<HTMLInputElement>("#paso-slider")!;
         this.instructionsPanel = host.querySelector<HTMLElement>("#instructions")!;
         this.playButton = host.querySelector<HTMLButtonElement>("#play")!;
-        this.reelsContainer = host.querySelector<HTMLElement>("#reels-container")!;
         host.querySelector<HTMLButtonElement>("#nuevo")!.onclick = () => this.regenerar(this.cantidad);
         host.querySelector<HTMLButtonElement>("#anterior")!.onclick = () => this.irA(this.paso - 1);
         host.querySelector<HTMLButtonElement>("#siguiente")!.onclick = () => this.irA(this.paso + 1);
-        host.querySelector<HTMLButtonElement>("#aplicar-arreglo")!.onclick = () => this.aplicarArreglo();
         this.playButton.onclick = () => this.togglePlay();
         this.cantidadSlider = host.querySelector<HTMLInputElement>("#cantidad-slider")!;
         this.cantidadSlider.oninput = () => this.regenerar(Number(this.cantidadSlider.value));
@@ -209,20 +195,6 @@ class Visualizador {
         datos[Math.max(1, Math.floor(n / 2))] = 4;
         return datos;
     }
-    aplicarArreglo(): void {
-        const entrada = document.querySelector<HTMLInputElement>("#arreglo-personalizado")!.value;
-        const datos = entrada.split(",").map(v => Number(v.trim())).filter(v => Number.isFinite(v));
-        if (!datos.length)
-            return;
-        this.cantidad = Math.max(1, Math.min(15, datos.length));
-        this.datos = datos.slice(0, this.cantidad);
-        this.pasos = generarPasos(this.datos);
-        this.paso = 1;
-        this.actualizarSliderPasos();
-        this.dibujar();
-        document.getElementById("cantidad-valor")!.textContent = String(this.cantidad);
-        this.cantidadSlider.value = String(Math.max(5, this.cantidad));
-    }
     regenerar(n: number): void {
         this.detener();
         this.cantidad = n;
@@ -230,7 +202,6 @@ class Visualizador {
         this.pasos = generarPasos(this.datos);
         this.paso = 1;
         document.getElementById("cantidad-valor")!.textContent = String(n);
-        document.querySelector<HTMLInputElement>("#arreglo-personalizado")!.value = this.datos.join(", ");
         this.actualizarSliderPasos();
         this.dibujar();
     }
@@ -247,7 +218,6 @@ class Visualizador {
         this.paso = Math.max(1, Math.min(this.pasos.length, paso));
         this.pasoSlider.value = String(this.paso);
         document.getElementById("paso-num")!.textContent = String(this.paso);
-        this.posicionesAnimadas = [...this.pasos[this.paso - 1].arr];
         this.dibujar();
     }
     togglePlay(): void {
@@ -263,7 +233,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-        }, 180);
+        }, 900);
     }
     detener(): void {
         if (this.timer !== undefined)
@@ -298,7 +268,6 @@ class Visualizador {
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
-        this.dibujarReels(p);
     }
     dibujarInstrucciones(): void {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -317,21 +286,6 @@ class Visualizador {
         this.instructionsPanel.innerHTML = instrucciones.slice(inicio).join("");
         this.instructionsPanel.scrollTop = this.instructionsPanel.scrollHeight;
     }
-    dibujarReels(p: Paso): void {
-        const minNum = Math.min(...p.arr);
-        const maxNum = Math.max(...p.arr);
-        const estaOrdenado = p.line === 9;
-        
-        document.getElementById("total-numeros")!.textContent = String(p.arr.length);
-        document.getElementById("min-valor")!.textContent = String(minNum);
-        document.getElementById("max-valor")!.textContent = String(maxNum);
-        
-        this.reelsContainer.innerHTML = p.arr.map((num, idx) => {
-            const estaEnPosicion = estaOrdenado || (idx < p.inicio && p.line === 9);
-            const clase = estaEnPosicion ? "numero-reel completado" : "numero-reel";
-            return `<div class="${clase}" title="Posición ${idx}: ${num}">${num}</div>`;
-        }).join("");
-    }
     dibujar2D(p: Paso): void {
         const ctx = this.ctx;
         const rect = this.canvas.getBoundingClientRect();
@@ -339,68 +293,110 @@ class Visualizador {
         const height = 210;
         if (this.canvas.width !== width) this.canvas.width = width;
         if (this.canvas.height !== height) this.canvas.height = height;
-        ctx.fillStyle = BG;
-        ctx.fillRect(0, 0, width, height);
-        
-        const colors = this.colores(p);
-        const cantidad = p.arr.length;
-        const gap = cantidad === 15 ? 7 : 8;
-        const maxTotalSize = width - 80;
-        const cardSize = Math.min(34, Math.floor((maxTotalSize - gap * (cantidad - 1)) / cantidad));
-        const cardWidth = cardSize;
-        const cardHeight = cardSize;
-        const totalWidth = cardWidth * cantidad + gap * (cantidad - 1);
-        const startX = (width - totalWidth) / 2;
-        const startY = (height - cardHeight) / 2 - 18;
-        
-        // Animar cada tarjeta suavemente
-        let animationStartTime: number | null = null;
-        const animationDuration = 1000;
-        
-        const animate = (currentTime: number) => {
-            if (animationStartTime === null) animationStartTime = currentTime;
-            const elapsed = currentTime - animationStartTime;
-            const progress = Math.min(elapsed / animationDuration, 1);
-            
-            ctx.fillStyle = BG;
+        if (this.animationFrame !== undefined)
+            cancelAnimationFrame(this.animationFrame);
+
+        const conteo = p.conteo || [];
+        const minimo = p.minVal ?? 0;
+        const rango = conteo.length;
+        const separacionArreglo = p.arr.length === 15 ? 7 : 8;
+        const tamanoArreglo = Math.min(34, Math.floor((width - 80 - separacionArreglo * (p.arr.length - 1)) / p.arr.length));
+        const anchoArreglo = tamanoArreglo * p.arr.length + separacionArreglo * (p.arr.length - 1);
+        const inicioArreglo = (width - anchoArreglo) / 2;
+        const yArreglo = 24;
+        const separacionConteo = 5;
+        const anchoConteo = Math.max(14, Math.min(48, Math.floor((width - 48 - separacionConteo * (rango - 1)) / rango)));
+        const altoConteo = 42;
+        const anchoTotalConteo = anchoConteo * rango + separacionConteo * (rango - 1);
+        const inicioConteo = (width - anchoTotalConteo) / 2;
+        const yConteo = height - altoConteo - 8;
+        const duracion = 760;
+        let inicioAnimacion: number | undefined;
+
+        const dibujarTarjeta = (x: number, y: number, ancho: number, alto: number, valor: number, color: string, fuente: number): void => {
+            ctx.shadowColor = "rgba(0,0,0,.35)";
+            ctx.shadowBlur = 7;
+            ctx.shadowOffsetY = 3;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x, y, ancho, alto, 8);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowColor = "transparent";
+            ctx.fillStyle = "#fff";
+            ctx.font = `700 ${fuente}px Roboto, Arial`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(valor), x + ancho / 2, y + alto / 2);
+        };
+
+        const render = (tiempo: number): void => {
+            if (inicioAnimacion === undefined) inicioAnimacion = tiempo;
+            const progreso = Math.min((tiempo - inicioAnimacion) / duracion, 1);
+            const suave = progreso * progreso * (3 - 2 * progreso);
+            ctx.fillStyle = PANEL;
             ctx.fillRect(0, 0, width, height);
-            
-            p.arr.forEach((value, i) => {
-                const targetX = startX + i * (cardWidth + gap);
-                const prevPos = this.posicionesAnimadas[i] ?? value;
-                const prevIndex = p.arr.indexOf(prevPos);
-                const prevX = prevIndex >= 0 ? startX + prevIndex * (cardWidth + gap) : targetX;
-                
-                const x = prevX + (targetX - prevX) * progress;
-                const y = startY;
-                
-                ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
-                ctx.shadowBlur = 8;
-                ctx.shadowOffsetY = 3;
-                ctx.fillStyle = colors[i];
-                ctx.strokeStyle = "#111";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.roundRect(x, y, cardWidth, cardHeight, 9);
-                ctx.fill();
-                ctx.stroke();
-                ctx.shadowColor = "transparent";
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "700 18px Roboto, Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(String(value), x + cardWidth / 2, y + cardHeight / 2);
+
+            const movimientoSalida = p.line === 9 && p.inicio !== undefined;
+            p.arr.forEach((valor, indice) => {
+                if (movimientoSalida && indice === p.inicio && progreso < 1) return;
+                let color = AZUL;
+                if (p.line === 4 && indice === p.inicio) color = NARANJA;
+                if (p.line === 9 && (p.inicio === undefined || indice < (progreso < 1 ? p.ordenadas - 1 : p.ordenadas))) color = VERDE;
+                const x = inicioArreglo + indice * (tamanoArreglo + separacionArreglo);
+                dibujarTarjeta(x, yArreglo, tamanoArreglo, tamanoArreglo, valor, color, 18);
                 ctx.fillStyle = "#bbaeb3";
                 ctx.font = "12px Arial";
-                ctx.fillText(String(i), x + cardWidth / 2, y + cardHeight + 22);
+                ctx.fillText(String(indice), x + tamanoArreglo / 2, yArreglo + tamanoArreglo + 15);
             });
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
+
+            ctx.fillStyle = "#d7cdd1";
+            ctx.font = "12px Roboto, Arial";
+            ctx.textAlign = "left";
+            ctx.fillText("Conteo por número", 12, yConteo - 15);
+            for (let indice = 0; indice < rango; indice++) {
+                const valor = minimo + indice;
+                const x = inicioConteo + indice * (anchoConteo + separacionConteo);
+                const total = conteo[indice] || 0;
+                let emitidos = 0;
+                if (p.line === 9) {
+                    const completados = Math.max(0, p.ordenadas - (progreso < 1 && p.inicio !== undefined ? 1 : 0));
+                    emitidos = p.arr.slice(0, completados).filter((numero) => numero === valor).length;
+                }
+                const mostrar = Math.max(0, total - emitidos -
+                    (p.line === 4 && p.minimo === valor && progreso < 1 ? 1 : 0));
+                dibujarTarjeta(x, yConteo, anchoConteo, altoConteo, valor, mostrar > 0 ? VERDE : "#333333", Math.min(16, anchoConteo / 2));
+                ctx.fillStyle = AMARILLO;
+                ctx.font = "700 11px Roboto, Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(`×${mostrar}`, x + anchoConteo / 2, yConteo + altoConteo - 7);
             }
+
+            const movimientoConteo = p.line === 4 && p.inicio !== undefined && rango > 0;
+            if (movimientoConteo || movimientoSalida) {
+                const valor = p.minimo ?? 0;
+                const indiceConteo = valor - minimo;
+                const origenX = movimientoConteo
+                    ? inicioArreglo + p.inicio! * (tamanoArreglo + separacionArreglo)
+                    : inicioConteo + indiceConteo * (anchoConteo + separacionConteo) + (anchoConteo - tamanoArreglo) / 2;
+                const origenY = movimientoConteo ? yArreglo : yConteo + (altoConteo - tamanoArreglo) / 2;
+                const destinoX = movimientoConteo
+                    ? inicioConteo + indiceConteo * (anchoConteo + separacionConteo) + (anchoConteo - tamanoArreglo) / 2
+                    : inicioArreglo + p.inicio! * (tamanoArreglo + separacionArreglo);
+                const destinoY = movimientoConteo ? yConteo + (altoConteo - tamanoArreglo) / 2 : yArreglo;
+                const x = origenX + (destinoX - origenX) * suave;
+                const y = origenY + (destinoY - origenY) * suave;
+                dibujarTarjeta(x, y, tamanoArreglo, tamanoArreglo, valor, NARANJA, 18);
+            }
+
+            if (progreso < 1)
+                this.animationFrame = requestAnimationFrame(render);
+            else
+                this.animationFrame = undefined;
         };
-        
-        requestAnimationFrame(animate);
+        this.animationFrame = requestAnimationFrame(render);
     }
     dibujarCodigo(lineaActiva: number): void {
         this.codePanel.replaceChildren();

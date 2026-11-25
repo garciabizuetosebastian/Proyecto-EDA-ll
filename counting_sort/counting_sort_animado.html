@@ -20,15 +20,17 @@
       .selection-layout section, .selection-layout aside section { border-color: transparent !important; }
       #app { min-height: 100vh; }
       @media (max-width: 900px) {
-        .selection-layout { grid-template-columns: 1fr !important; }
-        .selection-side { grid-column: 1 !important; }
+        .selection-layout { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: auto auto auto !important; overflow: visible !important; }
+        .selection-layout > div:first-child { grid-column: 1 !important; }
+        .selection-layout > section { grid-column: 1 !important; grid-row: 2 !important; grid-template-rows: auto auto auto !important; overflow: visible !important; }
+        .selection-side { grid-column: 1 !important; grid-row: 3 !important; }
         body { overflow: auto !important; align-items: flex-start !important; }
         .selection-layout { width: calc(100vw - 24px) !important; height: auto !important; max-height: none !important; margin: 12px auto !important; }
       }
     </style>
   </head>
   <body>
-    <script src="./counting_sort_animado.js?v=directo3"></script>
+    <script src="./counting_sort_animado.js?v=directo8"></script>
     <script>iniciar();</script>
   </body>
 </html>
