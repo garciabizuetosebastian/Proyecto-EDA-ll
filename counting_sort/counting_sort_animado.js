@@ -65,7 +65,7 @@ class Visualizador {
     crearInterfaz() {
         const host = document.createElement("main");
         host.className = "selection-layout";
-        host.style.cssText = `width:min(980px,calc(100vw - 40px));height:min(680px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto minmax(0,1fr);gap:8px 14px;overflow:hidden;`;
+        host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto minmax(0,1fr) auto;gap:8px 14px;overflow:hidden;`;
         host.innerHTML = `
           <div style="grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:24px">
             <h1 style="margin:0;color:#111;font-size:22px;font-weight:700">Aprende Counting Sort paso a paso</h1>
@@ -121,9 +121,20 @@ class Visualizador {
               <h2 style="font-size:15px;margin:0 0 7px;color:#fff">Instrucciones realizadas</h2>
               <div id="instructions" style="height:90px;overflow-y:auto;color:#d7cdd1;font-size:11px;line-height:1.35"></div>
             </section>
-          </aside>`;
+          </aside>
+          <section style="grid-column:1/3;grid-row:3;background:${PANEL};border:1px solid #ffffff18;border-radius:10px;padding:12px 16px;overflow:hidden">
+            <h2 style="font-size:15px;margin:0 0 10px;color:#fff">Números Ordenados - Estilo Reels</h2>
+            <div id="reels-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(45px,1fr));gap:8px;max-height:120px;overflow-y:auto;padding:8px 0">
+              <!-- Se llena dinámicamente con JavaScript -->
+            </div>
+            <div style="margin-top:10px;padding:8px;background:#050505;border-radius:6px;color:#d7cdd1;font-size:12px">
+              <span>Total de números: <b id="total-numeros" style="color:#ff91a2">0</b></span>
+              <span style="margin-left:20px">Mínimo: <b id="min-valor" style="color:#4da3ff">-</b></span>
+              <span style="margin-left:20px">Máximo: <b id="max-valor" style="color:#ff8f42">-</b></span>
+            </div>
+          </section>`;
         const style = document.createElement("style");
-        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}input[type="range"]{appearance:none;-webkit-appearance:none;height:6px;background:#5c5c5c;border-radius:4px}input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}input[type="range"]::-moz-range-thumb{width:10px;height:10px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}`;
+        style.textContent = `.control{border:1px solid #ffffff35;background:#222222;color:#fff;border-radius:7px;padding:9px 14px;cursor:pointer}.control:hover{background:#3a3a3a}.control.primary{background:#63d6a5;border-color:#63d6a5;color:#111;font-weight:700}input[type="range"]{appearance:none;-webkit-appearance:none;height:6px;background:#5c5c5c;border-radius:4px}input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}input[type="range"]::-moz-range-thumb{width:10px;height:10px;background:#bdbdbd;border:2px solid #111;border-radius:50%;cursor:pointer}.numero-reel{background:#ff3158;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;min-height:45px;transition:all 0.3s ease;border:2px solid transparent}.numero-reel.completado{background:#63d6a5;border-color:#fff}.numero-reel:hover{transform:scale(1.1)}`;
         host.append(style);
         this.canvas = host.querySelector("#chart");
         this.ctx = this.canvas.getContext("2d");
@@ -133,6 +144,7 @@ class Visualizador {
         this.pasoSlider = host.querySelector("#paso-slider");
         this.instructionsPanel = host.querySelector("#instructions");
         this.playButton = host.querySelector("#play");
+        this.reelsContainer = host.querySelector("#reels-container");
         host.querySelector("#nuevo").onclick = () => this.regenerar(this.cantidad);
         host.querySelector("#anterior").onclick = () => this.irA(this.paso - 1);
         host.querySelector("#siguiente").onclick = () => this.irA(this.paso + 1);
@@ -271,6 +283,7 @@ class Visualizador {
         this.dibujar2D(p);
         this.dibujarCodigo(p.line);
         this.dibujarInstrucciones();
+        this.dibujarReels(p);
     }
     dibujarInstrucciones() {
         const instrucciones = this.pasos.slice(0, this.paso).map((paso, indice) => {
@@ -288,6 +301,21 @@ class Visualizador {
         const inicio = Math.max(0, instrucciones.length - 12);
         this.instructionsPanel.innerHTML = instrucciones.slice(inicio).join("");
         this.instructionsPanel.scrollTop = this.instructionsPanel.scrollHeight;
+    }
+    dibujarReels(p) {
+        const minNum = Math.min(...p.arr);
+        const maxNum = Math.max(...p.arr);
+        const estaOrdenado = p.line === 9;
+        
+        document.getElementById("total-numeros").textContent = String(p.arr.length);
+        document.getElementById("min-valor").textContent = String(minNum);
+        document.getElementById("max-valor").textContent = String(maxNum);
+        
+        this.reelsContainer.innerHTML = p.arr.map((num, idx) => {
+            const estaEnPosicion = estaOrdenado || (idx < p.inicio && p.line === 9);
+            const clase = estaEnPosicion ? "numero-reel completado" : "numero-reel";
+            return `<div class="${clase}" title="Posición ${idx}: ${num}">${num}</div>`;
+        }).join("");
     }
     dibujar2D(p) {
         const ctx = this.ctx;
@@ -312,7 +340,7 @@ class Visualizador {
         
         // Animar cada tarjeta suavemente
         let animationStartTime = null;
-        const animationDuration = 300;
+        const animationDuration = 1000;
         
         const animate = (currentTime) => {
             if (animationStartTime === null) animationStartTime = currentTime;
