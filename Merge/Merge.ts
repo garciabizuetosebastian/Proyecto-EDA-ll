@@ -464,8 +464,9 @@ function actualizarVista(): void {
     return elemento;
   });
   registro.replaceChildren(...elementosRegistro);
-  const pasoVisible = registro.querySelector(".actual");
-  pasoVisible?.scrollIntoView({ block: "nearest" });
+  // El paso actual siempre es el último: bajamos solo el scroll del registro.
+  // (scrollIntoView movía también la página completa.)
+  registro.scrollTop = registro.scrollHeight;
 }
 
 function generar(): void {

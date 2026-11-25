@@ -1,10 +1,25 @@
-const BG = "#ffffff";
-const PANEL = "#151515";
-const AZUL = "#4da3ff";
-const ROJO = "#ff3158";
-const AMARILLO = "#ffd166";
-const NARANJA = "#ff8f42";
-const VERDE = "#63d6a5";
+const TEMA_INICIAL = window.SortLabTheme?.getPalette();
+let BG = TEMA_INICIAL?.fondo || "#050505";
+let PANEL = TEMA_INICIAL?.normalFondo || "#151515";
+let AZUL = TEMA_INICIAL?.compararBorde || "#d6d6d6";
+let ROJO = TEMA_INICIAL?.normalBorde || "#383838";
+let AMARILLO = TEMA_INICIAL?.minimoBorde || "#e0bc72";
+let NARANJA = TEMA_INICIAL?.pivoteBorde || "#e0bc72";
+let VERDE = TEMA_INICIAL?.exitoBorde || "#64c9a7";
+
+window.addEventListener("sortlab-theme-change", () => {
+    if (!window.SortLabTheme) return;
+    const tema = window.SortLabTheme.getPalette();
+    BG = tema.fondo;
+    PANEL = tema.normalFondo;
+    AZUL = tema.compararBorde;
+    ROJO = tema.normalBorde;
+    AMARILLO = tema.minimoBorde;
+    NARANJA = tema.pivoteBorde;
+    VERDE = tema.exitoBorde;
+    if (window.__sortLabVisualizer)
+        window.__sortLabVisualizer.dibujar();
+});
 const CODE = [
     "def counting_sort(lista):",
     "    minimo = min(lista)",
@@ -63,12 +78,27 @@ class Visualizador {
         this.datos = this.nuevosDatos(this.cantidad);
         this.pasos = generarPasos(this.datos);
         this.host = this.crearInterfaz();
+<<<<<<< HEAD
         this.animationFrame = undefined;
     }
     crearInterfaz() {
         const host = document.createElement("main");
         host.className = "selection-layout";
         host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto auto;align-content:start;gap:8px 14px;overflow:hidden;`;
+=======
+        window.SortLabTheme.crearControlVelocidad(this.host.querySelector("#play").parentElement);
+        window.addEventListener("sortlab-speed-change", () => {
+            if (this.timer !== undefined) {
+                this.detener();
+                this.reproducir();
+            }
+        });
+    }
+    crearInterfaz() {
+        const host = document.createElement("main");
+        host.className = "selection-layout insertion-layout";
+        host.style.cssText = `width:min(980px,calc(100vw - 40px));height:min(680px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto minmax(0,1fr);gap:8px 14px;overflow:hidden;`;
+>>>>>>> origin/Presentacion
         host.innerHTML = `
           <div style="grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:24px">
             <h1 style="margin:0;color:#111;font-size:22px;font-weight:700">Aprende Counting Sort paso a paso</h1>
@@ -217,7 +247,11 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
+<<<<<<< HEAD
         }, 900);
+=======
+        }, Math.round(180 / window.SortLabTheme.getPlaybackSpeed()));
+>>>>>>> origin/Presentacion
     }
     detener() {
         if (this.timer !== undefined)
@@ -277,6 +311,7 @@ class Visualizador {
         const height = 210;
         if (this.canvas.width !== width) this.canvas.width = width;
         if (this.canvas.height !== height) this.canvas.height = height;
+<<<<<<< HEAD
         if (this.animationFrame !== undefined)
             cancelAnimationFrame(this.animationFrame);
 
@@ -301,6 +336,27 @@ class Visualizador {
         const drawCard = (x, y, w, h, value, color, size) => {
             ctx.shadowColor = "rgba(0,0,0,.35)";
             ctx.shadowBlur = 7;
+=======
+        ctx.fillStyle = PANEL;
+        ctx.fillRect(0, 0, width, height);
+        const colors = this.colores(p);
+        const cantidad = p.arr.length;
+        const gap = cantidad === 15 ? 7 : 8;
+        const maxTotalSize = width - 80;
+        const cardSize = Math.min(34, Math.floor((maxTotalSize - gap * (cantidad - 1)) / cantidad));
+        const cardWidth = cardSize;
+        const cardHeight = cardSize;
+        const totalWidth = cardWidth * cantidad + gap * (cantidad - 1);
+        const startX = (width - totalWidth) / 2;
+        const startY = (height - cardHeight) / 2 - 18;
+        const objetivo = Number(document.querySelector("#buscar-numero")?.value);
+        p.arr.forEach((value, i) => {
+            const x = startX + i * (cardWidth + gap);
+            const seleccionado = i === p.inicio || (p.line === 9 && p.arr[i] === objetivo);
+            const y = startY - (seleccionado ? 14 : 0);
+            ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+            ctx.shadowBlur = 8;
+>>>>>>> origin/Presentacion
             ctx.shadowOffsetY = 3;
             ctx.fillStyle = color;
             ctx.strokeStyle = "#ffffff";
@@ -417,5 +473,6 @@ class Visualizador {
     }
 }
 function iniciar(cantidad = 15, semilla) {
-    return new Visualizador(cantidad, semilla).montar();
+    window.__sortLabVisualizer = new Visualizador(cantidad, semilla);
+    return window.__sortLabVisualizer.montar();
 }

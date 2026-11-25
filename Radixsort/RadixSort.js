@@ -43,7 +43,7 @@ function actualizarColorBarra(barra) {
         : 0;
     barra.style.setProperty("--progreso", `${porcentaje}%`);
 }
-const PALETA = {
+let PALETA = {
     fondo: "#100c0e",
     normalFondo: "#261a20",
     normalBorde: "#593644",
@@ -61,6 +61,16 @@ const PALETA = {
     tenue: "#7a6470", // ceros de relleno a la izquierda
     cubetaFondo: "#181115",
 };
+function aplicarTemaDeSortLab() {
+    if (window.SortLabTheme)
+        Object.assign(PALETA, window.SortLabTheme.getPalette());
+}
+aplicarTemaDeSortLab();
+window.addEventListener("sortlab-theme-change", () => {
+    aplicarTemaDeSortLab();
+    if (typeof actualizarVista === "function")
+        actualizarVista();
+});
 let pasos = [];
 let pasoActual = 0;
 let playing = false;
@@ -359,8 +369,6 @@ function actualizarVista() {
         return elemento;
     });
     registro.replaceChildren(...elementosRegistro);
-    const pasoVisible = registro.querySelector(".actual");
-    pasoVisible?.scrollIntoView({ block: "nearest" });
 }
 function cargar(valores) {
     detener();
@@ -416,7 +424,7 @@ function play() {
         siguiente();
         if (pasoActual >= pasos.length - 1)
             detener();
-    }, 450);
+    }, Math.round(450 / window.SortLabTheme.getPlaybackSpeed()));
 }
 function detener() {
     playing = false;
@@ -455,5 +463,12 @@ btnPlay.onclick = () => {
     else
         play();
 };
+window.SortLabTheme.crearControlVelocidad(btnPlay.parentElement);
+window.addEventListener("sortlab-speed-change", () => {
+    if (playing) {
+        detener();
+        play();
+    }
+});
 generar();
 actualizarColorBarra(inputNum);
