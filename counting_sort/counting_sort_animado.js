@@ -78,14 +78,7 @@ class Visualizador {
         this.datos = this.nuevosDatos(this.cantidad);
         this.pasos = generarPasos(this.datos);
         this.host = this.crearInterfaz();
-<<<<<<< HEAD
         this.animationFrame = undefined;
-    }
-    crearInterfaz() {
-        const host = document.createElement("main");
-        host.className = "selection-layout";
-        host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto auto;align-content:start;gap:8px 14px;overflow:hidden;`;
-=======
         window.SortLabTheme.crearControlVelocidad(this.host.querySelector("#play").parentElement);
         window.addEventListener("sortlab-speed-change", () => {
             if (this.timer !== undefined) {
@@ -96,9 +89,8 @@ class Visualizador {
     }
     crearInterfaz() {
         const host = document.createElement("main");
-        host.className = "selection-layout insertion-layout";
-        host.style.cssText = `width:min(980px,calc(100vw - 40px));height:min(680px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto minmax(0,1fr);gap:8px 14px;overflow:hidden;`;
->>>>>>> origin/Presentacion
+        host.className = "selection-layout";
+        host.style.cssText = `width:min(1200px,calc(100vw - 40px));height:min(900px,calc(100vh - 40px));margin:0;padding:14px 16px;background:${BG};border:1px solid #ffffff08;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1.7fr) minmax(260px,.85fr);grid-template-rows:auto auto;align-content:start;gap:8px 14px;overflow:hidden;`;
         host.innerHTML = `
           <div style="grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:24px">
             <h1 style="margin:0;color:#111;font-size:22px;font-weight:700">Aprende Counting Sort paso a paso</h1>
@@ -247,11 +239,7 @@ class Visualizador {
                 this.detener();
             else
                 this.irA(this.paso + 1);
-<<<<<<< HEAD
-        }, 900);
-=======
-        }, Math.round(180 / window.SortLabTheme.getPlaybackSpeed()));
->>>>>>> origin/Presentacion
+        }, Math.round(900 / window.SortLabTheme.getPlaybackSpeed()));
     }
     detener() {
         if (this.timer !== undefined)
@@ -311,7 +299,6 @@ class Visualizador {
         const height = 210;
         if (this.canvas.width !== width) this.canvas.width = width;
         if (this.canvas.height !== height) this.canvas.height = height;
-<<<<<<< HEAD
         if (this.animationFrame !== undefined)
             cancelAnimationFrame(this.animationFrame);
 
@@ -330,33 +317,12 @@ class Visualizador {
         const countStartX = (width - countWidth) / 2;
         const countY = height - countCardHeight - 8;
         const countTitleY = countY - 15;
-        const duration = 760;
+        const duration = 760 / window.SortLabTheme.getPlaybackSpeed();
         let startTime;
 
         const drawCard = (x, y, w, h, value, color, size) => {
             ctx.shadowColor = "rgba(0,0,0,.35)";
             ctx.shadowBlur = 7;
-=======
-        ctx.fillStyle = PANEL;
-        ctx.fillRect(0, 0, width, height);
-        const colors = this.colores(p);
-        const cantidad = p.arr.length;
-        const gap = cantidad === 15 ? 7 : 8;
-        const maxTotalSize = width - 80;
-        const cardSize = Math.min(34, Math.floor((maxTotalSize - gap * (cantidad - 1)) / cantidad));
-        const cardWidth = cardSize;
-        const cardHeight = cardSize;
-        const totalWidth = cardWidth * cantidad + gap * (cantidad - 1);
-        const startX = (width - totalWidth) / 2;
-        const startY = (height - cardHeight) / 2 - 18;
-        const objetivo = Number(document.querySelector("#buscar-numero")?.value);
-        p.arr.forEach((value, i) => {
-            const x = startX + i * (cardWidth + gap);
-            const seleccionado = i === p.inicio || (p.line === 9 && p.arr[i] === objetivo);
-            const y = startY - (seleccionado ? 14 : 0);
-            ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
-            ctx.shadowBlur = 8;
->>>>>>> origin/Presentacion
             ctx.shadowOffsetY = 3;
             ctx.fillStyle = color;
             ctx.strokeStyle = "#ffffff";
