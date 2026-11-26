@@ -1,0 +1,182 @@
+% ============================================================
+% Fragmento: Bubble Sort, Selection Sort, Heap Sort y Counting Sort
+% Sin título ni portada: pensado para incluirse con \input{...}
+% Paquetes necesarios en el preámbulo del reporte principal:
+%   \usepackage[utf8]{inputenc}, \usepackage[spanish]{babel},
+%   \usepackage{amsmath}, \usepackage{booktabs}
+% ============================================================
+
+\section{Bubble Sort (ordenamiento de burbuja)}
+
+\subsection{Funcionamiento}
+
+Bubble Sort recorre el arreglo de izquierda a derecha comparando \textbf{pares de elementos vecinos}. Si el elemento de la izquierda es mayor que el de la derecha, ambos se intercambian. De esta manera, en cada pasada el mayor de los elementos que aún no están acomodados ``sube'' como una burbuja hasta el extremo derecho.
+
+Para un arreglo \texttt{arr} de $n$ elementos, el algoritmo realiza lo siguiente:
+
+\begin{enumerate}
+  \item Se repiten $n-1$ pasadas, indexadas por $i = 0, 1, \dots, n-2$.
+  \item En la pasada $i$, el índice $j$ recorre las posiciones $0$ a $n-i-2$. Para cada $j$ se compara \texttt{arr[j]} con \texttt{arr[j+1]}.
+  \item Si \texttt{arr[j] > arr[j+1]}, los dos elementos se intercambian.
+  \item Al terminar la pasada $i$, el elemento más grande de la zona revisada queda en su posición definitiva, por lo que las $i+1$ posiciones finales ya están ordenadas y la siguiente pasada puede ignorarlas.
+\end{enumerate}
+
+En el visualizador, cada comparación y cada intercambio se registran como pasos independientes, y los dos vecinos que se comparan se resaltan. Como solo se intercambian elementos cuando \texttt{arr[j] > arr[j+1]} (comparación estricta), los elementos iguales conservan su orden relativo y el algoritmo es \textbf{estable}. Además trabaja \textbf{in situ}, pues los intercambios se hacen dentro del mismo arreglo.
+
+\subsection{Complejidad en tiempo}
+
+En la implementación analizada, la pasada $i$ siempre realiza $n-i-1$ comparaciones, sin importar el contenido del arreglo (no existe una bandera que detenga el algoritmo anticipadamente). El número total de comparaciones es, por lo tanto,
+\[
+  \sum_{i=0}^{n-2} (n-i-1) = \frac{n(n-1)}{2} \in \Theta(n^2).
+\]
+
+\paragraph{Mejor caso.} Ocurre cuando el arreglo ya está ordenado. No se realiza ningún intercambio, pero las $\frac{n(n-1)}{2}$ comparaciones se ejecutan de todos modos, por lo que esta versión sigue siendo $\Theta(n^2)$. Si se agrega una bandera que detecte una pasada sin intercambios y termine el ciclo, el mejor caso baja a $\Theta(n)$ (una sola pasada de $n-1$ comparaciones).
+
+\paragraph{Peor caso.} Ocurre cuando el arreglo está en orden descendente. Cada comparación provoca un intercambio, de modo que se realizan $\frac{n(n-1)}{2}$ comparaciones y $\frac{n(n-1)}{2}$ intercambios:
+\[
+  T_{\text{peor}}(n) \in \Theta(n^2).
+\]
+
+\paragraph{Caso promedio.} Para datos aleatorios se hacen $\frac{n(n-1)}{2}$ comparaciones y alrededor de $\frac{n(n-1)}{4}$ intercambios, es decir, $\Theta(n^2)$.
+
+\subsection{Complejidad en espacio}
+
+Solo se emplean los índices $i$ y $j$ y una variable temporal para el intercambio, por lo que
+\[
+  S(n) \in O(1).
+\]
+
+\section{Selection Sort (ordenamiento por selección)}
+
+\subsection{Funcionamiento}
+
+Selection Sort divide el arreglo en una parte ordenada, que crece desde la izquierda, y una parte sin ordenar. En cada pasada \textbf{selecciona el elemento mínimo} de la parte sin ordenar y lo coloca en la primera posición de esa parte.
+
+\begin{enumerate}
+  \item Para cada posición \texttt{inicio} desde $0$ hasta $n-2$, se supone que el mínimo está en \texttt{inicio} (\texttt{minimo = inicio}).
+  \item Se recorren las posiciones \texttt{comparando} desde \texttt{inicio + 1} hasta $n-1$. Si \texttt{lista[comparando] < lista[minimo]}, se actualiza \texttt{minimo = comparando}.
+  \item Al terminar el recorrido, se intercambian \texttt{lista[inicio]} y \texttt{lista[minimo]}.
+  \item Las posiciones $0$ a \texttt{inicio} quedan ordenadas y contienen sus valores definitivos.
+\end{enumerate}
+
+Una característica importante es que cada pasada realiza \textbf{exactamente un intercambio}, a diferencia de Bubble Sort. Sin embargo, ese intercambio puede mover un elemento a una posición lejana y saltarse a otros elementos iguales, por lo que el algoritmo \textbf{no es estable}. Es un algoritmo \textbf{in situ}.
+
+\subsection{Complejidad en tiempo}
+
+Para encontrar el mínimo de la pasada con $\texttt{inicio} = i$ siempre se recorren todos los elementos restantes, es decir, se hacen $n-i-1$ comparaciones, independientemente de cómo estén ordenados los datos:
+\[
+  \sum_{i=0}^{n-2} (n-i-1) = \frac{n(n-1)}{2} \in \Theta(n^2).
+\]
+
+\paragraph{Mejor caso.} Con el arreglo ya ordenado, el mínimo de cada pasada ya está en \texttt{inicio}, pero igualmente se hacen todas las comparaciones: $\Theta(n^2)$.
+
+\paragraph{Peor caso.} También $\Theta(n^2)$ comparaciones. Los intercambios son a lo más $n-1$ (uno por pasada), de modo que el costo de movimientos es $O(n)$.
+
+\paragraph{Caso promedio.} $\Theta(n^2)$. Este algoritmo no se beneficia del orden inicial de los datos; su ventaja es el número reducido de intercambios, útil cuando escribir en memoria es costoso.
+
+\subsection{Complejidad en espacio}
+
+Se requieren únicamente las variables \texttt{inicio}, \texttt{minimo} y \texttt{comparando}:
+\[
+  S(n) \in O(1).
+\]
+
+\section{Heap Sort (ordenamiento por montículo)}
+
+\subsection{Funcionamiento}
+
+Heap Sort utiliza la estructura de un \textbf{montículo máximo} (\emph{max-heap}), un árbol binario casi completo almacenado en el propio arreglo en el que cada nodo es mayor o igual que sus hijos. Para un nodo en la posición $r$, su hijo izquierdo está en $2r+1$ y su hijo derecho en $2r+2$. En consecuencia, la raíz (posición $0$) siempre contiene el mayor elemento.
+
+El algoritmo tiene dos fases:
+
+\begin{enumerate}
+  \item \textbf{Construcción del montículo.} Para cada nodo con hijos, desde la posición $\lfloor n/2 \rfloor - 1$ hasta $0$, se aplica la operación \texttt{convertir\_en\_monton} (conocida como \emph{heapify}), que hace que el subárbol con raíz en ese nodo cumpla la propiedad del montículo.
+  \item \textbf{Extracción.} Para \texttt{final} desde $n-1$ hasta $1$: se intercambia la raíz \texttt{lista[0]} (el máximo) con \texttt{lista[final]}, con lo que el máximo queda en su posición definitiva; el tamaño del montículo se reduce en uno y se aplica \emph{heapify} sobre la raíz para restaurar la propiedad.
+\end{enumerate}
+
+La operación \emph{heapify} sobre una raíz $r$ compara el valor de $r$ con el de sus hijos izquierdo y derecho (si existen dentro del tamaño actual del montículo) y determina cuál es el mayor. Si el mayor no es la raíz, se intercambian y se repite el proceso sobre el hijo con el que se intercambió, de forma que el valor ``se hunde'' hasta su posición correcta.
+
+Heap Sort es un algoritmo \textbf{in situ} y \textbf{no es estable}, porque los intercambios entre la raíz y el último elemento pueden alterar el orden relativo de elementos iguales.
+
+\subsection{Complejidad en tiempo}
+
+La altura de un montículo de $n$ elementos es $\lfloor \log_2 n \rfloor$, así que una llamada a \emph{heapify} cuesta $O(\log n)$ en el peor caso.
+
+\begin{itemize}
+  \item \textbf{Construcción:} aunque se llama a \emph{heapify} unas $n/2$ veces, la mayoría de los nodos están cerca de las hojas y se hunden poco, de modo que el costo total es $O(n)$.
+  \item \textbf{Extracción:} se realizan $n-1$ extracciones, cada una con un \emph{heapify} de costo $O(\log n)$, es decir, $O(n \log n)$.
+\end{itemize}
+
+\paragraph{Mejor caso.} Para una entrada arbitraria de elementos distintos, el costo sigue siendo $\Theta(n \log n)$, ya que la fase de extracción siempre se ejecuta completa y los elementos se hunden en promedio casi hasta el fondo. Solo en el caso particular en que todos los elementos son iguales, \emph{heapify} termina de inmediato y el costo baja a $\Theta(n)$.
+
+\paragraph{Peor caso.} $\Theta(n \log n)$, pues cada una de las $n-1$ extracciones puede hundir el elemento hasta una hoja.
+
+\paragraph{Caso promedio.} $\Theta(n \log n)$. A diferencia de Bubble y Selection Sort, el tiempo casi no depende del orden inicial de los datos.
+
+\subsection{Complejidad en espacio}
+
+El ordenamiento se realiza dentro del mismo arreglo. Si \emph{heapify} se implementa de forma iterativa, solo se usan unas cuantas variables y $S(n) \in O(1)$. En la implementación del visualizador, \emph{heapify} es recursivo (se vuelve a llamar sobre el hijo con el que se intercambió), por lo que la pila de llamadas alcanza una profundidad $O(\log n)$ y el espacio auxiliar es
+\[
+  S(n) \in O(\log n).
+\]
+
+\section{Counting Sort (ordenamiento por conteo)}
+
+\subsection{Funcionamiento}
+
+Counting Sort es un algoritmo \textbf{no comparativo}: no compara elementos entre sí, sino que \textbf{cuenta cuántas veces aparece cada valor} y reconstruye el arreglo a partir de esos conteos. Solo es aplicable a enteros que se encuentren en un rango acotado.
+
+\begin{enumerate}
+  \item Se calculan el mínimo y el máximo de la lista, y con ellos el tamaño del rango $k = \texttt{maximo} - \texttt{minimo} + 1$.
+  \item Se crea un arreglo \texttt{conteo} de tamaño $k$ inicializado en cero. El valor \texttt{v} se asocia con la posición \texttt{v - minimo}, lo cual permite manejar también números negativos o rangos que no empiezan en cero.
+  \item Se recorre la lista y, para cada número, se incrementa su contador: \texttt{conteo[numero - minimo] += 1}.
+  \item Se recorre \texttt{conteo} de izquierda a derecha y, para cada posición $i$, se agrega a la lista resultado el valor $i + \texttt{minimo}$ tantas veces como indique \texttt{conteo[i]}.
+\end{enumerate}
+
+Como el resultado se arma recorriendo los valores en orden creciente, la lista queda ordenada sin ninguna comparación. En la versión del visualizador los elementos son números enteros que se reescriben directamente a partir de los conteos, por lo que la estabilidad no es relevante (los valores iguales son indistinguibles). Cuando se ordenan registros con una clave, la variante estable utiliza conteos acumulados y un arreglo de salida. El algoritmo \textbf{no es in situ}, pues necesita memoria adicional.
+
+\subsection{Complejidad en tiempo}
+
+Sea $n$ el número de elementos y $k$ el tamaño del rango de valores. Calcular el mínimo y el máximo cuesta $\Theta(n)$; inicializar \texttt{conteo} cuesta $\Theta(k)$; contar las ocurrencias cuesta $\Theta(n)$; y reconstruir el resultado recorre los $k$ contadores y escribe $n$ valores, es decir, $\Theta(n+k)$. En total,
+\[
+  T(n, k) \in \Theta(n + k).
+\]
+
+\paragraph{Mejor caso.} Ocurre cuando el rango es pequeño comparado con el número de elementos, es decir, $k = O(n)$ (por ejemplo, muchos números repetidos en un rango corto). El tiempo es entonces lineal: $\Theta(n)$.
+
+\paragraph{Peor caso.} Ocurre cuando el rango es mucho mayor que $n$. Por ejemplo, con $k \in \Theta(n^2)$ el algoritmo costaría $\Theta(n^2)$, y con valores muy grandes el arreglo de conteo puede ser inviable. El tiempo depende del rango y no del orden de los datos.
+
+\paragraph{Caso promedio.} $\Theta(n + k)$. El orden inicial de la lista no influye en el costo.
+
+\subsection{Complejidad en espacio}
+
+Se necesita el arreglo \texttt{conteo} de tamaño $k$ y la lista resultado de tamaño $n$:
+\[
+  S(n, k) \in \Theta(n + k).
+\]
+
+\section{Comparación de los algoritmos}
+
+\begin{table}[h]
+  \centering
+  \caption{Comparación entre Bubble, Selection, Heap y Counting Sort.}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Característica} & \textbf{Bubble} & \textbf{Selection} & \textbf{Heap} & \textbf{Counting} \\
+    \midrule
+    Mejor caso       & $\Theta(n^2)^{*}$ & $\Theta(n^2)$ & $\Theta(n \log n)$ & $\Theta(n)^{\dagger}$ \\
+    Caso promedio    & $\Theta(n^2)$     & $\Theta(n^2)$ & $\Theta(n \log n)$ & $\Theta(n+k)$ \\
+    Peor caso        & $\Theta(n^2)$     & $\Theta(n^2)$ & $\Theta(n \log n)$ & $\Theta(n+k)$ \\
+    Espacio auxiliar & $O(1)$            & $O(1)$        & $O(\log n)$        & $\Theta(n+k)$ \\
+    Estable          & Sí                & No            & No                 & Sí (variante con acumulados) \\
+    In situ          & Sí                & Sí            & Sí                 & No \\
+    Basado en comparaciones & Sí         & Sí            & Sí                 & No \\
+    \bottomrule
+  \end{tabular}
+
+  \smallskip
+  {\footnotesize $^{*}$ $\Theta(n)$ si se añade una bandera que detenga el algoritmo cuando una pasada no hace intercambios. \\
+  $^{\dagger}$ Cuando $k = O(n)$.}
+\end{table}
+
+Bubble y Selection Sort son sencillos de implementar, pero su costo cuadrático los limita a conjuntos pequeños; Selection Sort realiza muy pocos intercambios. Heap Sort garantiza $\Theta(n \log n)$ en cualquier caso con poca memoria adicional, a costa de no ser estable. Counting Sort puede ser el más rápido, ya que evita las comparaciones y alcanza tiempo lineal, pero únicamente cuando se trata de enteros con un rango $k$ comparable con $n$.

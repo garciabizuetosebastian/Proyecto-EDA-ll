@@ -1,0 +1,185 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{parskip}
+
+\newcommand{\bigO}[1]{\ensuremath{\mathcal{O}(#1)}}
+
+\begin{document}
+
+\section{Problemas de LeetCode}
+
+%------------------------------------------------------------
+\subsection{LC 148: Ordenar una lista ligada}
+
+\textbf{Problema.} Dada la cabeza de una lista ligada, ordenarla de forma ascendente en tiempo \bigO{n \log n}.
+
+\textbf{Algoritmo.} La función \texttt{lc148} implementa \emph{merge sort} sobre listas. Si la lista está vacía o tiene un solo nodo, ya está ordenada. En caso contrario, \texttt{getMid} localiza el nodo central con dos apuntadores (uno avanza un nodo y el otro dos); la lista se corta en ese punto poniendo \texttt{der.next = None}, se ordenan recursivamente ambas mitades y finalmente \texttt{merge} las combina. \texttt{merge} utiliza un nodo ficticio (\texttt{dummy}) y recorre ambas listas enlazando siempre el menor de los dos nodos actuales; al terminar, anexa lo que sobre de la lista que no se agotó.
+
+\textbf{Por qué funciona.} Cada nivel de recursión divide la lista a la mitad, por lo que hay \bigO{\log n} niveles, y en cada nivel la mezcla recorre todos los nodos una sola vez, es decir \bigO{n}; el total es \bigO{n \log n}. En \texttt{getMid}, \texttt{fast} inicia en \texttt{head.next}, de modo que \texttt{slow} termina en el final de la primera mitad y ambas mitades nunca quedan vacías. Como la mezcla solo reasigna apuntadores y no crea nodos, no se necesita memoria adicional más allá de la pila de recursión, \bigO{\log n}. La corrección se sigue por inducción: si las dos mitades están ordenadas, la mezcla de dos listas ordenadas produce una lista ordenada.
+
+%------------------------------------------------------------
+\subsection{LC 33: Búsqueda en un arreglo ordenado y rotado}
+
+\textbf{Problema.} Se tiene un arreglo de enteros distintos, ordenado de forma ascendente pero rotado en algún pivote desconocido (por ejemplo, $[4,5,6,7,0,1,2]$). Dado un objetivo, devolver su índice o $-1$ si no está, en tiempo \bigO{\log n}.
+
+\textbf{Algoritmo.} Es una búsqueda binaria modificada. En cada iteración se calcula el centro y, si coincide con el objetivo, se devuelve. Si no, se determina cuál mitad está ordenada: si \texttt{nums[izq] <= nums[centro]}, la mitad izquierda es la ordenada; de lo contrario lo es la derecha. Dentro de la mitad ordenada se verifica si el objetivo cae en su rango; si es así se continúa buscando ahí y si no, se descarta esa mitad y se busca en la otra.
+
+\textbf{Por qué funciona.} Aunque el arreglo completo esté rotado, al partirlo por el centro \emph{al menos una de las dos mitades siempre está ordenada}, pues el punto de rotación solo puede estar en una de ellas. En una mitad ordenada se puede saber con certeza, mediante dos comparaciones, si el objetivo está o no en ella. Así, cada paso descarta la mitad del espacio de búsqueda, lo que da \bigO{\log n}.
+
+%------------------------------------------------------------
+\subsection{LC 1011: Capacidad para enviar paquetes en D días}
+
+\textbf{Problema.} Se tiene una lista de pesos de paquetes que deben enviarse \emph{en el orden dado} en un barco, y un plazo de $D$ días. Cada día se carga el barco sin superar su capacidad. Encontrar la capacidad mínima con la que se pueden enviar todos los paquetes en a lo más $D$ días.
+
+\textbf{Algoritmo.} Se hace una búsqueda binaria sobre la \emph{respuesta}, es decir, sobre la capacidad. El límite inferior es el paquete más pesado (menos que eso no se podría cargar ese paquete) y el superior es la suma de todos (todo en un día). Para una capacidad candidata, la función auxiliar \texttt{calcular\_dias} simula la carga: se acumulan paquetes y, cuando el siguiente ya no cabe, se inicia un nuevo día. Si la capacidad candidata permite terminar en $D$ días o menos, se guarda como posible respuesta y se busca una menor; si no, se busca una mayor.
+
+\textbf{Por qué funciona.} La condición ``se puede enviar todo en $D$ días con capacidad $c$'' es monótona: si es posible con $c$, también lo es con cualquier capacidad mayor. Esto permite aplicar búsqueda binaria sobre un espacio de capacidades que va de \texttt{max(paquetes)} a \texttt{sum(paquetes)}, encontrando la frontera entre las capacidades insuficientes y suficientes. La simulación es voraz y óptima, porque llenar cada día lo más posible nunca aumenta el número de días. La complejidad es \bigO{n \log(S)}, donde $S$ es la suma de los pesos.
+
+%------------------------------------------------------------
+\subsection{LC 98: Validar un árbol binario de búsqueda}
+
+\textbf{Problema.} Determinar si un árbol binario es un árbol binario de búsqueda (BST) válido: para cada nodo, todos los valores de su subárbol izquierdo son menores y todos los del derecho son mayores.
+
+\textbf{Algoritmo.} La función auxiliar \texttt{valid(nodo, izq, der)} recorre el árbol recursivamente llevando un intervalo abierto $(izq, der)$ en el que debe encontrarse el valor del nodo. Inicia con $(-\infty, \infty)$. Un nodo nulo es válido; si el valor del nodo queda fuera del intervalo, el árbol no es válido. Al descender a la izquierda, el límite superior se actualiza al valor del nodo actual; al descender a la derecha, se actualiza el límite inferior.
+
+\textbf{Por qué funciona.} Comparar únicamente cada nodo con sus hijos directos es insuficiente, pues un nodo del subárbol derecho podría ser menor que un ancestro lejano. Al propagar los límites hacia abajo, cada nodo se verifica contra \emph{todos} sus ancestros a la vez, ya que los límites acumulan la restricción impuesta por cada uno. Cada nodo se visita una vez: \bigO{n} en tiempo y \bigO{h} en espacio, con $h$ la altura del árbol.
+
+%------------------------------------------------------------
+\subsection{LC 322: Cambio de monedas}
+
+\textbf{Problema.} Dadas monedas de distintas denominaciones (con existencia ilimitada) y una cantidad objetivo, calcular el número mínimo de monedas necesarias para formarla, o $-1$ si es imposible.
+
+\textbf{Algoritmo.} Se usa programación dinámica \emph{bottom-up}. El arreglo \texttt{dp[a]} guarda el mínimo de monedas para formar la cantidad $a$. Se inicializa con \texttt{cantidad + 1} (un valor que funciona como ``infinito'', pues nunca se necesitarían más monedas que la cantidad misma usando monedas de valor 1) y \texttt{dp[0] = 0}. Para cada cantidad $a$ de $1$ a la cantidad objetivo y cada moneda $c \le a$ se aplica
+\[
+dp[a] = \min\bigl(dp[a],\; 1 + dp[a-c]\bigr).
+\]
+Al final, si \texttt{dp[cantidad]} sigue valiendo \texttt{cantidad + 1}, no hubo forma de alcanzarla y se devuelve $-1$.
+
+\textbf{Por qué funciona.} El problema tiene subestructura óptima: la mejor manera de formar $a$ termina con alguna moneda $c$, y el resto $a-c$ debe formarse también de manera óptima. Al calcular las cantidades en orden creciente, cuando se necesita \texttt{dp[a - c]} ya está calculado. Además, los subproblemas se repiten, por lo que guardarlos evita la explosión exponencial de la recursión simple. La complejidad es \bigO{n \cdot m} con $n$ la cantidad y $m$ el número de monedas.
+
+%------------------------------------------------------------
+\subsection{LC 70: Subir escaleras}
+
+\textbf{Problema.} Se sube una escalera de $n$ escalones, avanzando 1 o 2 escalones por paso. Determinar de cuántas formas distintas se puede llegar a la cima.
+
+\textbf{Algoritmo.} Sea $f(n)$ el número de formas de llegar al escalón $n$. Se llega al escalón $n$ desde el $n-1$ (con un paso de 1) o desde el $n-2$ (con un paso de 2), por lo que
+\[
+f(n) = f(n-1) + f(n-2), \qquad f(0)=f(1)=1.
+\]
+Esta es la sucesión de Fibonacci. El código solo conserva los dos últimos valores (\texttt{uno} y \texttt{dos}) y los actualiza $n-1$ veces.
+
+\textbf{Por qué funciona.} Las formas de llegar al escalón $n$ se dividen en dos conjuntos disjuntos según cuál fue el último paso, y cada conjunto tiene exactamente tantos elementos como formas de llegar al escalón previo correspondiente. Como cada valor solo depende de los dos anteriores, no hace falta guardar un arreglo completo, lo que da \bigO{n} en tiempo y \bigO{1} en espacio.
+
+%------------------------------------------------------------
+\subsection{LC 1396: Diseñar un sistema de metro}
+
+\textbf{Problema.} Diseñar una clase \texttt{UndergroundSystem} que registre las entradas (\texttt{checkIn}) y salidas (\texttt{checkOut}) de clientes en estaciones y pueda responder el tiempo promedio de viaje entre dos estaciones (\texttt{getAverageTime}).
+
+\textbf{Algoritmo.} Se usan dos diccionarios. \texttt{checkInMap} asocia el identificador de cada cliente con su estación y hora de entrada. \texttt{totalMap} asocia cada ruta (par estación de origen y estación de destino) con una lista \texttt{[tiempo total, número de viajes]}. En \texttt{checkOut} se recupera la entrada del cliente, se calcula la duración del viaje y se acumula en la ruta correspondiente. \texttt{getAverageTime} simplemente divide el tiempo total entre el número de viajes de esa ruta.
+
+\textbf{Por qué funciona.} Para calcular un promedio no hace falta guardar cada viaje individual, basta con la suma y la cantidad. Así, las tres operaciones son \bigO{1} gracias al acceso directo de las tablas hash. Como un cliente solo puede estar en un viaje a la vez, el identificador es una llave suficiente para emparejar entrada y salida.
+
+%------------------------------------------------------------
+\subsection{LC 743: Tiempo de retraso de una red}
+
+\textbf{Problema.} Dada una red de $n$ nodos con aristas dirigidas y ponderadas (tiempos de viaje) y un nodo inicial $k$, calcular el tiempo mínimo para que una señal emitida desde $k$ llegue a todos los nodos, o $-1$ si algún nodo no puede alcanzarse.
+
+\textbf{Algoritmo.} Es el algoritmo de Dijkstra. Se construye una lista de adyacencia y se usa un min-heap de pares (tiempo acumulado, nodo), iniciando con $(0,k)$. Se extrae siempre el nodo con menor tiempo acumulado; si ya fue visitado se ignora, si no, se marca como visitado, se actualiza el tiempo total $t$ con el máximo visto y se insertan sus vecinos no visitados con el tiempo acumulado más el peso de la arista. Al final, si se visitaron los $n$ nodos se devuelve $t$ y si no, $-1$.
+
+\textbf{Por qué funciona.} Con pesos no negativos, la primera vez que un nodo sale del heap lo hace con su distancia mínima desde $k$: cualquier otro camino a ese nodo pasaría por nodos con tiempo acumulado mayor o igual. Por tanto, la señal llega a todos los nodos cuando llega al más lejano, es decir, el máximo de las distancias mínimas. Si el número de nodos visitados es menor que $n$, existe algún nodo inalcanzable. La complejidad es \bigO{E \log E}, con $E$ el número de aristas.
+
+%------------------------------------------------------------
+\subsection{LC 210: Orden de cursos (ordenamiento topológico)}
+
+\textbf{Problema.} Dados $n$ cursos y una lista de prerrequisitos (para tomar el curso $a$ hay que haber tomado antes el $b$), devolver un orden en el que se puedan tomar todos los cursos, o un arreglo vacío si es imposible.
+
+\textbf{Algoritmo.} Se modela como un grafo dirigido y se realiza un ordenamiento topológico mediante búsqueda en profundidad (DFS). \texttt{prereq} guarda para cada curso la lista de sus prerrequisitos. La función \texttt{dfs} usa dos conjuntos: \texttt{cycle}, con los nodos de la ruta actual de recursión, y \texttt{visit}, con los cursos ya procesados por completo. Si se encuentra un curso que ya está en \texttt{cycle}, existe un ciclo y se devuelve un arreglo vacío. En caso contrario, se visitan primero todos los prerrequisitos del curso y, hasta que todos terminaron, el curso se agrega a \texttt{output}.
+
+\textbf{Por qué funciona.} Un curso se agrega al resultado solamente después de agregar todos sus prerrequisitos (orden posterior del DFS), por lo que el resultado cumple por construcción que cada curso aparece después de sus requisitos. Un ordenamiento así existe si y solo si el grafo es acíclico, y un ciclo se manifiesta justamente como una arista de regreso hacia un nodo que aún está en la ruta de recursión, lo que detecta \texttt{cycle}. El conjunto \texttt{visit} evita reprocesar nodos, por lo que la complejidad es \bigO{V + E}.
+
+%------------------------------------------------------------
+\subsection{LC 198: Robo de casas}
+
+\textbf{Problema.} Dada una lista con el dinero de cada casa, calcular la máxima cantidad que se puede robar sin tomar de dos casas adyacentes.
+
+\textbf{Algoritmo.} Programación dinámica con dos variables: \texttt{anterior}, el mejor acumulado hasta la casa $i-2$, y \texttt{actual}, el mejor acumulado hasta la casa $i-1$. Para cada casa se decide entre saltarla (conservar \texttt{actual}) o robarla (sumar su valor a \texttt{anterior}):
+\[
+dp[i] = \max\bigl(dp[i-1],\; dp[i-2] + casa_i\bigr).
+\]
+
+\textbf{Por qué funciona.} Si se roba la casa $i$, no se puede haber robado la $i-1$, así que lo mejor que se puede combinar es el óptimo hasta la casa $i-2$; si no se roba, el óptimo es simplemente el de la casa $i-1$. Tomar el máximo de ambas opciones cubre todos los casos posibles. Como cada valor solo depende de los dos anteriores, basta con dos variables: \bigO{n} en tiempo y \bigO{1} en espacio.
+
+%------------------------------------------------------------
+\subsection{LC 218: Perfil de una ciudad (\emph{skyline})}
+
+\textbf{Problema.} Dados los edificios como $[L, R, H]$ (coordenada izquierda, derecha y altura), devolver el contorno que forman en conjunto, como una lista de puntos clave $[x, altura]$ donde cambia la altura máxima visible.
+
+\textbf{Algoritmo.} Es un barrido de línea con un max-heap. Cada edificio genera dos eventos: uno de inicio $(L, -H, R)$ y uno de fin $(R, 0, 0)$. Los eventos se ordenan por coordenada $x$; en caso de empate, los inicios con mayor altura van primero (por usar $-H$) y los eventos de fin después. El heap (implementado como min-heap con alturas negativas) guarda pares $(-H, R)$ de los edificios activos y comienza con un elemento centinela de altura 0 que nunca expira. En cada evento se eliminan de la cima los edificios cuyo borde derecho ya quedó atrás ($R \le x$), se agrega el edificio nuevo si es un inicio y se consulta la altura máxima actual. Si esta difiere de la última altura registrada, se agrega el punto $[x, altura]$ al resultado.
+
+\textbf{Por qué funciona.} El contorno solo cambia en las coordenadas donde un edificio empieza o termina, y en cada una de ellas la altura visible es la del edificio activo más alto, que el heap entrega en la cima. La eliminación es \emph{perezosa}: un edificio terminado solo se retira cuando llega a la cima, ya que si está debajo de otro más alto no afecta la altura máxima. Registrar un punto únicamente cuando la altura cambia evita puntos redundantes en tramos consecutivos de igual altura. La complejidad es \bigO{n \log n}.
+
+%------------------------------------------------------------
+\subsection{LC 617: Combinar dos árboles binarios}
+
+\textbf{Problema.} Dados dos árboles binarios, combinarlos sumando los valores de los nodos que se superponen; si en una posición solo hay un nodo, ese se conserva (el nulo cuenta como 0). Se debe devolver la raíz del nuevo árbol.
+
+\textbf{Algoritmo.} Recursión sobre ambos árboles a la vez. Si ambos nodos son nulos, se devuelve \texttt{None}. En caso contrario, se toma el valor de cada nodo (0 si es nulo), se crea un nodo nuevo con la suma y sus hijos izquierdo y derecho se obtienen llamando recursivamente a la función con los hijos correspondientes de cada árbol (o \texttt{None} si ese nodo no existe).
+
+\textbf{Por qué funciona.} La combinación de dos árboles se descompone de forma natural en combinar la raíz y combinar recursivamente los subárboles izquierdos y derechos entre sí. Tratar un nodo ausente como un valor 0 con hijos ausentes hace que el caso en que solo uno de los árboles continúa se copie sin tratamientos especiales. Cada posición se visita una vez: \bigO{\min(n_1, n_2)} en el caso de recorrido conjunto y, en el peor caso, \bigO{n_1 + n_2} al copiar ramas de un solo árbol. El código crea nodos nuevos, por lo que no modifica los árboles originales.
+
+%------------------------------------------------------------
+\subsection{LC 236: Ancestro común más bajo en un árbol binario}
+
+\textbf{Problema.} Dado un árbol binario y dos nodos $p$ y $q$, encontrar su ancestro común más bajo (LCA), es decir, el nodo más profundo que tiene a ambos como descendientes (un nodo puede ser descendiente de sí mismo).
+
+\textbf{Algoritmo.} Recursión posterior. Si el nodo actual es nulo o es $p$ o $q$, se devuelve tal cual. En otro caso se busca en el subárbol izquierdo y en el derecho. Si ambas búsquedas devuelven un nodo (no nulo), $p$ y $q$ están en lados distintos y la raíz actual es el LCA. Si solo una devuelve algo, se propaga hacia arriba ese resultado.
+
+\textbf{Por qué funciona.} Cada llamada devuelve el primer nodo objetivo encontrado en su subárbol, o \texttt{None} si no hay ninguno. Cuando una llamada recibe resultados de ambos lados, esa es la primera posición, desde abajo, en la que ambos nodos quedan bajo el mismo ancestro, o sea el LCA. Si solo un lado devuelve algo, o bien se encontró uno solo de los nodos, o bien ambos están en ese lado y el resultado ya es el LCA, y propagarlo es correcto. El caso en que un nodo es ancestro del otro queda cubierto porque al encontrarlo se devuelve de inmediato, sin necesidad de buscar al otro. Se recorre cada nodo una vez: \bigO{n}.
+
+%------------------------------------------------------------
+\subsection{LC 235: Ancestro común más bajo en un BST}
+
+\textbf{Problema.} Igual que el LC 236, pero el árbol es un árbol binario de búsqueda.
+
+\textbf{Algoritmo.} Se aprovecha el orden del BST con un recorrido iterativo desde la raíz. Si los valores de $p$ y $q$ son ambos mayores que el del nodo actual, el LCA está en el subárbol derecho; si ambos son menores, está en el izquierdo. En cualquier otro caso (están en lados distintos, o uno de ellos es el nodo actual), el nodo actual es el LCA y se devuelve.
+
+\textbf{Por qué funciona.} En un BST, todos los valores a la izquierda de un nodo son menores y los de la derecha mayores. Mientras $p$ y $q$ caigan del mismo lado, ambos siguen estando en ese subárbol y el LCA no puede estar fuera de él. El primer nodo en el que se ``separan'' es por definición su ancestro común más bajo. Como solo se desciende por una rama, la complejidad es \bigO{h} en tiempo y \bigO{1} en espacio, lo cual es mejor que el \bigO{n} del caso general.
+
+%------------------------------------------------------------
+\subsection{LC 200: Número de islas}
+
+\textbf{Problema.} Dada una matriz de \texttt{"1"} (tierra) y \texttt{"0"} (agua), contar las islas, entendidas como grupos de celdas de tierra conectadas horizontal o verticalmente y rodeadas de agua.
+
+\textbf{Algoritmo.} Se recorre toda la matriz. Cada vez que se encuentra una celda de tierra que no ha sido visitada, se incrementa el contador de islas y se lanza una búsqueda en anchura (BFS) desde ella. El BFS usa una cola y revisa las cuatro direcciones, agregando cada celda de tierra vecina no visitada y marcándola en el conjunto \texttt{visitados}.
+
+\textbf{Por qué funciona.} El BFS desde una celda de tierra visita \emph{todas} las celdas conectadas a ella, es decir, la isla completa, y las marca. Gracias a esto, cuando el recorrido principal vuelve a encontrar una de esas celdas ya no la cuenta de nuevo. Por tanto, cada isla se cuenta exactamente una vez, cuando se encuentra su primera celda. Cada celda se procesa a lo más una vez, por lo que la complejidad es \bigO{f \cdot c}, con $f$ filas y $c$ columnas.
+
+%------------------------------------------------------------
+\subsection{LC 238: Producto del arreglo excepto uno mismo}
+
+\textbf{Problema.} Dado un arreglo \texttt{nums}, devolver un arreglo donde la posición $i$ contenga el producto de todos los elementos excepto \texttt{nums[i]}, en tiempo lineal y sin usar división.
+
+\textbf{Algoritmo.} Se hacen dos pasadas. En la primera, de izquierda a derecha, se guarda en \texttt{prods[i]} el producto de todos los elementos a la izquierda de $i$ (el prefijo), acumulándolo en una variable. En la segunda, de derecha a izquierda, se multiplica cada \texttt{prods[i]} por el producto de todos los elementos a su derecha (el posfijo), acumulado también en una variable.
+
+\textbf{Por qué funciona.} El producto de todos los elementos excepto $nums[i]$ es
+\[
+\underbrace{\prod_{j<i} nums[j]}_{\text{prefijo}} \cdot \underbrace{\prod_{j>i} nums[j]}_{\text{posfijo}}.
+\]
+Cada pasada calcula una de las dos partes de forma incremental, de modo que no se necesita dividir el producto total entre $nums[i]$ (lo que además fallaría si hubiera ceros). Al reutilizar el arreglo de salida para el prefijo y solo una variable para el posfijo, el espacio adicional es \bigO{1} (sin contar la salida) y el tiempo es \bigO{n}.
+
+%------------------------------------------------------------
+\subsection{LC 253: Salas de reuniones}
+
+\textbf{Problema.} Dada una lista de intervalos $[inicio, fin]$ de reuniones, calcular el número mínimo de salas necesarias para que todas se puedan realizar.
+
+\textbf{Algoritmo.} Se separan los tiempos de inicio y de fin en dos arreglos que se ordenan de manera independiente. Con dos apuntadores, \texttt{s} sobre los inicios y \texttt{e} sobre los finales, se compara el siguiente inicio con el siguiente final. Si la reunión que comienza lo hace antes de que termine la más próxima a terminar, se necesita una sala más (el contador aumenta y se avanza \texttt{s}); si no, una sala se libera (el contador disminuye y se avanza \texttt{e}). La respuesta es el máximo valor que alcanza el contador.
+
+\textbf{Por qué funciona.} El número de salas necesarias es el máximo número de reuniones que coinciden en un mismo instante. Al procesar, en orden cronológico, los eventos de inicio (+1) y de fin ($-1$), el contador es justamente el número de reuniones en curso, y su máximo es la respuesta. No importa saber qué inicio se empareja con qué final, solo cuántas reuniones están activas en cada momento, por lo que ordenar ambos arreglos por separado es válido. Como se usa una comparación estricta (\texttt{<}), una reunión que empieza justo cuando otra termina puede reutilizar su sala. La complejidad está dominada por el ordenamiento: \bigO{n \log n}.
+
+\end{document}
